@@ -4,7 +4,8 @@ import { AppHeader, DetectionOverlay, Panel, StatusBadge } from "@/components/se
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CATEGORY_LABELS, DEPARTMENTS, TRACK_STEPS, VERIFICATION_COPY, categoryOf, trackStep } from "@/lib/sentinel/model";
-import { myTickets, signOff, store, logEvent, useReports } from "@/lib/sentinel/store";
+import { citizenSignOff, fetchTicket, myTickets } from "@/lib/sentinel/store";
+import type { Report } from "@/lib/sentinel/model";
 import { useT } from "@/lib/sentinel/i18n";
 import { cn } from "@/lib/utils";
 
@@ -31,15 +32,30 @@ const STEPS_TA = ["பெறப்பட்டது", "ஒதுக்கப்
 function Track() {
   const { id, new: isNew } = Route.useSearch();
   const navigate = useNavigate({ from: "/track" });
-  const reports = useReports();
   const { t, lang, cat, ver } = useT();
   const [q, setQ] = useState(id ?? "");
   const [mine, setMine] = useState<string[]>([]);
   const [note, setNote] = useState("");
   useEffect(() => setMine(myTickets()), []);
   useEffect(() => setQ(id ?? ""), [id]);
-
-  const r = reports && id ? reports.find((x) => x.id.toUpperCase() === id.trim().toUpperCase()) : undefined;
+  // undefined = loading, null = not found
+  const [r, setR] = useState<Report | null | undefined>(undefined);
+  const [actErr, setActErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!id) { setR(undefined); return; }
+    let live = true;
+    setR(undefined);
+    fetchTicket(id).then((x) => { if (live) setR(x); }).catch(() => { if (live) setR(null); });
+    return () => { live = false; };
+  }, [id]);
+  async function act(decision: "confirmed" | "disputed" | "reopen") {
+    if (!r) return;
+    setBusy(true); setActErr(null);
+    try { await citizenSignOff(r.id, decision, note); setR(await fetchTicket(r.id)); }
+    catch { setActErr("That didn't go through — refresh the ticket and try again."); }
+    finally { setBusy(false); }
+  }
   const step = r ? trackStep(r.status) : 0;
   const steps = lang === "ta" ? STEPS_TA : TRACK_STEPS;
   // Citizens see public updates only, not internal admin notes about exposure/linking.
@@ -73,7 +89,7 @@ function Track() {
         )}
         {!id && <p className="text-xs text-muted-foreground">Demo tickets: {["RPT-1004", "RPT-1005", "RPT-1010", "RPT-1007"].map((d) => <Link key={d} to="/track" search={{ id: d }} className="mr-2 font-mono text-primary hover:underline">{d}</Link>)}</p>}
 
-        {id && reports && !r && <p className="rounded-lg border border-sev-critical/40 bg-sev-critical/10 p-3 text-sm text-sev-critical">{t("not_found")}</p>}
+        {id && r === null && <p className="rounded-lg border border-sev-critical/40 bg-sev-critical/10 p-3 text-sm text-sev-critical">{t("not_found")}</p>}
 
         {r && (
           <>
@@ -114,14 +130,15 @@ function Track() {
                         <p className="text-sm font-medium">{t("your_check")}</p>
                         <Input value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} placeholder="Optional comment" />
                         <div className="flex flex-wrap gap-2">
-                          <Button className="bg-sev-low text-primary-foreground hover:bg-sev-low/85" onClick={() => signOff(r.id, "confirmed", "citizen", note)}>{t("yes_fixed")}</Button>
-                          <Button variant="destructive" onClick={() => signOff(r.id, "disputed", "citizen", note)}>{t("not_fixed")}</Button>
+                          <Button className="bg-sev-low text-primary-foreground hover:bg-sev-low/85" disabled={busy} onClick={() => void act("confirmed")}>{t("yes_fixed")}</Button>
+                          <Button variant="destructive" disabled={busy} onClick={() => void act("disputed")}>{t("not_fixed")}</Button>
                         </div>
                       </div>
                     ) : r.verification.human ? <p className="text-sm text-sev-low">{t("thanks")}</p> : null}
                   </div>
                 ) : <div className="space-y-2"><DetectionOverlay compact image={r.image} output={r.output} /><p className="text-xs text-muted-foreground">The repair photo will appear here once the crew uploads it.</p></div>}
-                {r.status === "CLOSED" && <Button variant="outline" size="sm" className="mt-3" onClick={() => store.update(r.id, (x) => logEvent({ ...x, status: "REOPENED" }, "citizen", "Reopened by citizen"))}>{t("reopen")}</Button>}
+                {actErr && <p role="alert" className="mt-2 text-sm text-destructive">{actErr}</p>}
+                {r.status === "CLOSED" && <Button variant="outline" size="sm" className="mt-3" disabled={busy} onClick={() => void act("reopen")}>{t("reopen")}</Button>}
               </Panel>
             </div>
           </>

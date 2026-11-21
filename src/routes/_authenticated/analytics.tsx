@@ -7,7 +7,7 @@ import { CATEGORIES, CATEGORY_LABELS, categoryOf, EXPOSURE_LABELS, EXPOSURE_SCOR
 import { severityFor, useReports } from "@/lib/sentinel/store";
 import { useT } from "@/lib/sentinel/i18n";
 
-export const Route = createFileRoute("/analytics")({
+export const Route = createFileRoute("/_authenticated/analytics")({
   head: () => ({
     meta: [
       { title: "Preventive Analytics & SLA — CivicAI Sentinel" },

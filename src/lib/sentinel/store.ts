@@ -73,7 +73,13 @@ const syncListeners = new Set<() => void>();
 const setSync = (s: SyncStatus) => { sync = s; syncListeners.forEach((l) => l()); };
 export const useSyncStatus = () => useSyncExternalStore((l) => { syncListeners.add(l); return () => syncListeners.delete(l); }, () => sync, () => "local" as SyncStatus);
 
+// Only staff can list reports (RLS); residents keep the local cache and use
+// ticket lookup instead, so an empty staff-less result never wipes the cache.
 async function pull() {
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) { setSync("local"); return; }
+  const { data: staff } = await supabase.rpc("is_staff", { _user_id: u.user.id });
+  if (!staff) { setSync("local"); return; }
   const { data, error } = await supabase.from("reports").select("*").order("created_at", { ascending: false });
   if (error || !data) { setSync("offline"); return; }
   setSync("live");
@@ -87,14 +93,17 @@ function startRemote() {
   supabase.channel(`reports-${Math.random().toString(36).slice(2)}`)
     .on("postgres_changes", { event: "*", schema: "public", table: "reports" }, () => void pull())
     .subscribe();
+  supabase.auth.onAuthStateChange((event) => { if (event === "SIGNED_IN" || event === "SIGNED_OUT") void pull(); });
 }
 async function push(prev: Report[], next: Report[]) {
   if (!remoteEnabled()) return;
   const before = new Map(prev.map((r) => [r.id, r]));
-  const changed = next.filter((r) => before.get(r.id) !== r).map(toRow);
+  const added = next.filter((r) => !before.has(r.id)).map(toRow);
+  const changed = next.filter((r) => before.has(r.id) && before.get(r.id) !== r).map(toRow);
   const ids = new Set(next.map((r) => r.id));
   const removed = prev.filter((r) => !ids.has(r.id)).map((r) => r.id);
   const results = await Promise.all([
+    added.length ? supabase.from("reports").insert(added as never) : null,
     changed.length ? supabase.from("reports").upsert(changed as never) : null,
     removed.length ? supabase.from("reports").delete().in("id", removed) : null,
   ]);
@@ -170,6 +179,19 @@ export function signOff(id: string, decision: "confirmed" | "disputed", actor: "
     ...x, status: decision === "confirmed" ? "CLOSED" : "REOPENED",
     ...(x.verification && { verification: { ...x.verification, human: { decision, at: new Date().toISOString(), ...(note && { note }) } } }),
   }, actor, decision === "confirmed" ? `Repair confirmed by ${actor}${note ? `: ${note}` : ""}` : `Repair disputed by ${actor} — reopened${note ? `: ${note}` : ""}`));
+}
+
+// Resident-side ticket access (works signed out): one ticket by number, and
+// confirm / dispute / reopen through database functions that check the status.
+export async function fetchTicket(id: string): Promise<Report | null> {
+  const { data, error } = await supabase.rpc("get_ticket", { _id: id });
+  if (error) throw error;
+  const row = (data as unknown as Row[] | null)?.[0];
+  return row ? fromRow(row) : null;
+}
+export async function citizenSignOff(id: string, decision: "confirmed" | "disputed" | "reopen", note = "") {
+  const { error } = await supabase.rpc("citizen_sign_off", { _id: id, _decision: decision, _note: note });
+  if (error) throw error;
 }
 
 // Tickets this browser submitted (citizen "my tickets").

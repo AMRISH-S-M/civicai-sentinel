@@ -4,6 +4,7 @@ import { CLASS_LABELS, STATUS_LABELS, type ModelOutput, type Severity, type Stat
 import { Button } from "@/components/ui/button";
 import { setLang, useT } from "@/lib/sentinel/i18n";
 import { useSyncStatus } from "@/lib/sentinel/store";
+import { signOut, useAuth } from "@/hooks/use-auth";
 
 export function LangToggle() {
   const { lang } = useT();
@@ -26,15 +27,28 @@ function SyncChip() {
     <span className={cn("h-1.5 w-1.5 rounded-full", s === "live" ? "bg-primary" : s === "offline" ? "bg-destructive" : "bg-muted-foreground")} />{label}</span>;
 }
 
+function AccountButton() {
+  const { ready, user } = useAuth();
+  if (!ready) return null;
+  if (!user) return <Link to="/auth" className="rounded-md border border-border px-3 py-1 text-sm hover:border-primary">Staff sign in</Link>;
+  return <span className="flex items-center gap-2"><span className="hidden max-w-[160px] truncate text-xs text-muted-foreground lg:inline">{user.email}</span>
+    <Button size="sm" variant="outline" onClick={() => void signOut().then(() => { window.location.replace("/auth"); })}>Sign out</Button></span>;
+}
+
 export function AppHeader() {
   const { t } = useT();
+  const { isStaff, isAdmin } = useAuth();
+  const staffNav = [
+    { to: "/" as const, label: t("nav_command"), exact: true },
+    { to: "/analytics" as const, label: t("nav_analytics") },
+    { to: "/verification" as const, label: t("nav_lab") },
+    { to: "/field" as const, label: t("nav_field") },
+  ];
   const nav = [
-    { to: "/" as const, k: "nav_command" as const, exact: true },
-    { to: "/analytics" as const, k: "nav_analytics" as const },
-    { to: "/verification" as const, k: "nav_lab" as const },
-    { to: "/field" as const, k: "nav_field" as const },
-    { to: "/report" as const, k: "nav_report" as const },
-    { to: "/track" as const, k: "nav_track" as const },
+    ...(isStaff ? staffNav : []),
+    { to: "/report" as const, label: t("nav_report") },
+    { to: "/track" as const, label: t("nav_track") },
+    ...(isAdmin ? [{ to: "/team" as const, label: "Team" }] : []),
   ];
   return (
     <header className="sticky top-0 z-[1000] border-b border-border bg-background/80 backdrop-blur-xl">
@@ -50,10 +64,10 @@ export function AppHeader() {
         </Link>
         <nav aria-label="Main navigation" className="order-3 flex w-full gap-1 overflow-x-auto text-sm font-medium xl:order-none xl:w-auto">
           {nav.map((n) => (
-            <Link key={n.to} to={n.to} activeOptions={{ exact: !!n.exact }}
+            <Link key={n.to} to={n.to} activeOptions={{ exact: "exact" in n && !!n.exact }}
               className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
               activeProps={{ className: "bg-secondary text-foreground shadow-[inset_0_-2px_0_var(--primary)]" }}>
-              {t(n.k)}
+              {n.label}
             </Link>
           ))}
         </nav>
@@ -63,6 +77,7 @@ export function AppHeader() {
             <span className="h-1.5 w-1.5 rounded-full bg-sev-moderate text-sev-moderate pulse-dot" />{t("demo_mode")}
           </span>
           <LangToggle />
+          <AccountButton />
         </div>
       </div>
     </header>

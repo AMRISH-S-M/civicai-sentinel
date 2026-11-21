@@ -8,7 +8,7 @@ import { UploadError, AFTER_SAMPLES, demoPredictFromBytes, fileToDataUrl } from 
 import { DEPARTMENTS, categoryOf, EXPOSURE_LABELS, VERIFICATION_COPY, linkCandidates, type Exposure, type ModelOutput, type Report } from "@/lib/sentinel/model";
 import { logEvent, severityFor, signOff, store, submitAfterPhoto, useReports } from "@/lib/sentinel/store";
 
-export const Route = createFileRoute("/incidents/$id")({
+export const Route = createFileRoute("/_authenticated/incidents/$id")({
   head: ({ params }) => ({
     meta: [
       { title: `${params.id} — CivicAI Sentinel` },

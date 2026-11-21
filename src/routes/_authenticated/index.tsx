@@ -9,7 +9,7 @@ import { CATEGORIES, CATEGORY_LABELS, categoryOf, type Category, CLASS_LABELS, S
 import { severityFor, store, useReports } from "@/lib/sentinel/store";
 import { useT } from "@/lib/sentinel/i18n";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
       { title: "Command Center — CivicAI Sentinel" },

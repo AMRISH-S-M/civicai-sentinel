@@ -11,7 +11,7 @@ import { signOff, submitAfterPhoto, useReports } from "@/lib/sentinel/store";
 import { useT } from "@/lib/sentinel/i18n";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/verification")({
+export const Route = createFileRoute("/_authenticated/verification")({
   validateSearch: (s: Record<string, unknown>): { id?: string } => (typeof s["id"] === "string" ? { id: s["id"] } : {}),
   head: () => ({
     meta: [

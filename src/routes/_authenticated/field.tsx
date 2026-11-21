@@ -10,7 +10,7 @@ import { logEvent, severityFor, store, submitAfterPhoto, useReports } from "@/li
 import { useT } from "@/lib/sentinel/i18n";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/field")({
+export const Route = createFileRoute("/_authenticated/field")({
   head: () => ({
     meta: [
       { title: "Field Crew Dispatch — CivicAI Sentinel" },
