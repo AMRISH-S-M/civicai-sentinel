@@ -42,5 +42,6 @@ use the editor.
 
 - Reports live in the Supabase `public.reports` table (one row per citizen record, JSON columns for detections/history/verification); `src/lib/sentinel/store.ts` keeps the synchronous store API, pushes changed rows, and refetches on realtime changes, so screens never talk to the database directly.
 - localStorage is only an offline cache and the test-mode backend; remote sync is disabled when `import.meta.env.MODE === "test"` so unit tests stay deterministic.
-- Database access is open to anonymous visitors until staff sign-in exists; tighten the RLS policies before any real deployment.
+- Staff pages live under `src/routes/_authenticated/` (sign-in + any role in `user_roles`); only staff can list/update reports. Residents stay signed out and use the `get_ticket` / `citizen_sign_off` database functions, so public ticket actions are limited to status-checked transitions.
+- Roles (`admin`, `crew`) live only in `public.user_roles`; the first account becomes admin via the signup trigger, and admins grant roles on /team.
 - Photos are stored inline in the report row because the workspace blocks public storage buckets.

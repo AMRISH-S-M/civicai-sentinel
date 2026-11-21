@@ -22,9 +22,10 @@ export function LangToggle() {
 
 function SyncChip() {
   const s = useSyncStatus();
-  const label = s === "live" ? "Shared database · live" : s === "offline" ? "Offline · this device only" : "Connecting…";
+  if (s === "local") return null;
+  const label = s === "live" ? "Shared database · live" : "Offline · this device only";
   return <span role="status" className="hidden items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground sm:inline-flex">
-    <span className={cn("h-1.5 w-1.5 rounded-full", s === "live" ? "bg-primary" : s === "offline" ? "bg-destructive" : "bg-muted-foreground")} />{label}</span>;
+    <span className={cn("h-1.5 w-1.5 rounded-full", s === "live" ? "bg-primary" : "bg-destructive")} />{label}</span>;
 }
 
 function AccountButton() {

@@ -46,9 +46,17 @@ function Track() {
     if (!id) { setR(undefined); return; }
     let live = true;
     setR(undefined);
-    fetchTicket(id).then((x) => { if (live) setR(x); }).catch(() => { if (live) setR(null); });
+    // A just-submitted ticket may still be saving: retry briefly before "not found".
+    const tryLoad = async (left: number): Promise<void> => {
+      const x = await fetchTicket(id).catch(() => null);
+      if (!live) return;
+      if (x || left === 0) { setR(x); return; }
+      await new Promise((res) => setTimeout(res, 1200));
+      return tryLoad(left - 1);
+    };
+    void tryLoad(isNew ? 4 : 0);
     return () => { live = false; };
-  }, [id]);
+  }, [id, isNew]);
   async function act(decision: "confirmed" | "disputed" | "reopen") {
     if (!r) return;
     setBusy(true); setActErr(null);

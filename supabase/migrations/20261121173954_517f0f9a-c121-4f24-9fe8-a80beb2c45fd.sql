@@ -1,0 +1,1 @@
+CREATE POLICY "Staff insert reports" ON public.reports FOR INSERT TO authenticated WITH CHECK (public.is_staff(auth.uid()) AND consent = true);
