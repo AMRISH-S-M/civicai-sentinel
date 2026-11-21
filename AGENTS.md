@@ -28,3 +28,6 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+- CivicAI Sentinel runs in local seeded demo mode: data lives in localStorage via src/lib/sentinel/store.ts and AI detections are labelled demo predictions — the blueprint requires a demo that never depends on live APIs and never fakes live inference.
+- Scoring, duplicate-linking and before/after verification rules live only in src/lib/sentinel/model.ts with tests beside it, so every UI shows the same explainable numbers.
