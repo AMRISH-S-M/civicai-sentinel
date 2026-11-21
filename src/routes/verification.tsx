@@ -3,8 +3,9 @@ import { useEffect, useState } from "react";
 import { AppHeader, AiTag, DetectionOverlay, Panel, StatusBadge } from "@/components/sentinel/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
-import { AFTER_SAMPLES, demoPredictFromBytes, fileToDataUrl, meanLuminance } from "@/lib/sentinel/images";
+import { UploadError, AFTER_SAMPLES, demoPredictFromBytes, fileToDataUrl, meanLuminance } from "@/lib/sentinel/images";
 import { CLASS_LABELS, categoryOf, VERIFICATION_COPY, diffDetections, haversineM, visibleArea, type Report } from "@/lib/sentinel/model";
 import { signOff, submitAfterPhoto, useReports } from "@/lib/sentinel/store";
 import { useT } from "@/lib/sentinel/i18n";
@@ -70,7 +71,9 @@ function Lab() {
 const resTone = (v: string) => v === "APPEARS_IMPROVED" ? "text-sev-low" : v === "DAMAGE_STILL_VISIBLE" ? "text-sev-critical" : "text-sev-moderate";
 
 function Inspector({ r }: { r: Report }) {
-  const { ver, cls } = useT();
+  const { t, ver, cls } = useT();
+  const [err, setErr] = useState<string | null>(null);
+  const [comparable, setComparable] = useState(true);
   const [mode, setMode] = useState<"side" | "wipe">("side");
   const [wipe, setWipe] = useState([50]);
   const [lum, setLum] = useState<number | null>(null);
@@ -78,9 +81,9 @@ function Inspector({ r }: { r: Report }) {
   const [actor, setActor] = useState<"inspector" | "citizen">("inspector");
   const [busy, setBusy] = useState(false);
   const v = r.verification;
-  useEffect(() => { if (v) void meanLuminance(v.afterImage).then(setLum); }, [v]);
+  useEffect(() => { if (v) void meanLuminance(v.afterImage).then(setLum).catch(() => setLum(null)); }, [v]);
 
-  const upload = async (img: string, out: Parameters<typeof submitAfterPhoto>[2], sameLoc = true) => { setBusy(true); await submitAfterPhoto(r, img, out, sameLoc); setBusy(false); };
+  const upload = async (img: string, out: Parameters<typeof submitAfterPhoto>[2], sameLoc = true) => { setBusy(true); setErr(null); try { await submitAfterPhoto(r, img, out, sameLoc, comparable); } catch { setErr(t("unreadable_image")); } finally { setBusy(false); } };
   const canResubmit = !v || !v.human;
 
   const diff = v ? diffDetections(r.output.detections, v.afterOutput.detections) : null;
@@ -110,7 +113,7 @@ function Inspector({ r }: { r: Report }) {
                 <div className="absolute inset-y-0 w-0.5 bg-primary glow" style={{ left: `${wipe[0]}%` }} />
                 <span className="absolute left-2 top-2 rounded bg-background/80 px-2 py-0.5 text-xs">Before</span><span className="absolute right-2 top-2 rounded bg-background/80 px-2 py-0.5 text-xs">After</span>
               </div>
-              <Slider value={wipe} onValueChange={setWipe} max={100} step={1} className="mt-3" />
+              <Slider aria-label="Before after wipe" value={wipe} onValueChange={setWipe} max={100} step={1} className="mt-3" />
               <p className="mt-1 text-[11px] text-muted-foreground">Visual wipe only — images are not pixel-registered in this prototype, so no pixel-difference claim is made.</p>
             </div>
           )}
@@ -169,16 +172,18 @@ function Inspector({ r }: { r: Report }) {
 
       {canResubmit && (
         <Panel title={v ? "Replace follow-up photo" : "Upload completion photo"}>
-          <Input type="file" accept="image/*" disabled={busy} onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; const url = await fileToDataUrl(f); await upload(url, demoPredictFromBytes(url, categoryOf(r))); }} />
+          <label className="mb-3 flex items-center gap-2 text-sm"><Checkbox checked={comparable} onCheckedChange={(v) => setComparable(v === true)} />Comparable viewpoint and subject (reviewer assessment)</label>
+          {err && <p role="alert" className="mb-2 text-sm text-destructive">{err}</p>}
+          <Input type="file" accept="image/*" disabled={busy} onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; try { const url = await fileToDataUrl(f); await upload(url, demoPredictFromBytes(url, categoryOf(r))); } catch (e) { setErr(t(e instanceof UploadError ? e.code : "unreadable_image")); } }} />
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {Object.values(AFTER_SAMPLES).map((s) => (
+            {Object.values(AFTER_SAMPLES).filter(() => categoryOf(r) === "road").map((s) => (
               <button key={s.id} disabled={busy} onClick={() => void upload(s.image, s.output)} className="group overflow-hidden rounded-lg border border-border text-left transition hover:border-primary/60">
                 <img src={s.image} alt="" className="h-20 w-full object-cover" /><span className="block px-2 py-1 text-xs">{s.label}</span>
               </button>
             ))}
-            <button disabled={busy} onClick={() => void upload(AFTER_SAMPLES.repaired.image, AFTER_SAMPLES.repaired.output, false)} className="overflow-hidden rounded-lg border border-border text-left hover:border-primary/60">
+            {categoryOf(r) === "road" && <button disabled={busy} onClick={() => void upload(AFTER_SAMPLES.repaired.image, AFTER_SAMPLES.repaired.output, false)} className="overflow-hidden rounded-lg border border-border text-left hover:border-primary/60">
               <img src={AFTER_SAMPLES.repaired.image} alt="" className="h-20 w-full object-cover" /><span className="block px-2 py-1 text-xs">Patched · no location data</span>
-            </button>
+            </button>}
           </div>
         </Panel>
       )}

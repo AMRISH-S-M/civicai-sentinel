@@ -198,3 +198,12 @@ body {
 .leaflet-container { background: var(--surface); }
 .leaflet-tile-pane { filter: invert(1) hue-rotate(195deg) brightness(0.85) saturate(0.6) contrast(0.95); }
 .leaflet-container { z-index: 0; isolation: isolate; }
+main > *, main .grid > * { min-width: 0; }
+button { white-space: normal; overflow-wrap: anywhere; }
+@media (max-width: 639px) {
+  main h1 { font-size: 1.5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+

@@ -29,7 +29,8 @@ describe("verification", () => {
 describe("linking", () => {
   it("suggests nearby unlinked report but not distant ones", () => {
     const all = seedReports(Date.parse("2026-11-21T00:00:00Z"));
-    const r3 = all.find((r) => r.id === "RPT-1003")!;
+    const r3 = all.find((r) => r.id === "RPT-1003");
+    if (!r3) throw new Error("Missing seed RPT-1003");
     const ids = linkCandidates(r3, all).map((s) => s.other.id);
     expect(ids).toContain("RPT-1001");
     expect(ids).not.toContain("RPT-1004");
@@ -65,7 +66,8 @@ describe("civic categories", () => {
   });
   it("does not suggest linking a drain report to a nearby pothole", () => {
     const all = seedReports(Date.parse("2026-11-21T00:00:00Z"));
-    const drain = all.find((r) => r.id === "RPT-1008")!;
+    const drain = all.find((r) => r.id === "RPT-1008");
+    if (!drain) throw new Error("Missing seed RPT-1008");
     expect(linkCandidates(drain, all).map((s) => s.other.id)).not.toContain("RPT-1001");
   });
 });

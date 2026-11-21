@@ -85,12 +85,12 @@ export const nearby = (r: Report, all: Report[], m = 200) =>
 
 // ---------- shared verification actions ----------
 
-export async function submitAfterPhoto(r: Report, afterImage: string, afterOutput: ModelOutput, sameLocation: boolean) {
+export async function submitAfterPhoto(r: Report, afterImage: string, afterOutput: ModelOutput, sameLocation: boolean, comparable = true) {
   const lum = await meanLuminance(afterImage);
   const capturedAt = new Date().toISOString();
   const afterLat = sameLocation ? r.lat + 0.00003 : undefined;
   const afterLng = sameLocation ? r.lng + 0.00002 : undefined;
-  const v = verifyRepair({ before: r.output.detections, after: afterOutput.detections, beforeAt: r.createdAt, afterAt: capturedAt, beforeLat: r.lat, beforeLng: r.lng, afterLat, afterLng, afterMeanLuminance: lum });
+  const v = verifyRepair({ before: r.output.detections, after: afterOutput.detections, beforeAt: r.createdAt, afterAt: capturedAt, beforeLat: r.lat, beforeLng: r.lng, afterLat, afterLng, afterMeanLuminance: lum, comparable });
   store.update(r.id, (x) => logEvent({
     ...x, status: "VERIFICATION_PENDING",
     verification: { ...v, afterImage, afterOutput, capturedAt, ...(afterLat != null && { afterLat }), ...(afterLng != null && { afterLng }) },

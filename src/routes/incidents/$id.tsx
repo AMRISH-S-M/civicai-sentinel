@@ -3,7 +3,8 @@ import { useState } from "react";
 import { AppHeader, AiTag, DetectionOverlay, Panel, SeverityBadge, SeverityPanel, StatusBadge } from "@/components/sentinel/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AFTER_SAMPLES, demoPredictFromBytes, fileToDataUrl } from "@/lib/sentinel/images";
+import { useT } from "@/lib/sentinel/i18n";
+import { UploadError, AFTER_SAMPLES, demoPredictFromBytes, fileToDataUrl } from "@/lib/sentinel/images";
 import { DEPARTMENTS, categoryOf, EXPOSURE_LABELS, VERIFICATION_COPY, linkCandidates, type Exposure, type ModelOutput, type Report } from "@/lib/sentinel/model";
 import { logEvent, severityFor, signOff, store, submitAfterPhoto, useReports } from "@/lib/sentinel/store";
 
@@ -113,12 +114,17 @@ function LinkPanel({ r, suggestions, linked }: { r: Report; suggestions: ReturnT
 }
 
 function WorkflowPanel({ r }: { r: Report }) {
+  const { t } = useT();
+  const [err, setErr] = useState<string | null>(null);
   const [team, setTeam] = useState("Zone Patch Crew");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
 
   async function runVerification(afterImage: string, afterOutput: ModelOutput, sameLocation: boolean) {
-    setBusy(true); await submitAfterPhoto(r, afterImage, afterOutput, sameLocation); setBusy(false);
+    setBusy(true); setErr(null);
+    try { await submitAfterPhoto(r, afterImage, afterOutput, sameLocation); }
+    catch { setErr(t("unreadable_image")); }
+    finally { setBusy(false); }
   }
 
   const v = r.verification;
@@ -128,7 +134,7 @@ function WorkflowPanel({ r }: { r: Report }) {
         {(r.status === "SUBMITTED" || r.status === "REOPENED") && <Button size="sm" onClick={() => upd(r.id, "admin", `Triaged → ${DEPARTMENTS[categoryOf(r)]} (simulated routing)`, (x) => ({ ...x, status: "TRIAGED" }))}>Route to {DEPARTMENTS[categoryOf(r)]}</Button>}
         {r.status === "TRIAGED" && <Button size="sm" onClick={() => upd(r.id, "admin", "Inspection scheduled", (x) => ({ ...x, status: "INSPECTION_SCHEDULED" }))}>Schedule inspection</Button>}
         {r.status === "INSPECTION_SCHEDULED" && (
-          <div className="flex gap-2"><Input value={team} onChange={(e) => setTeam(e.target.value)} className="h-8 w-48" />
+          <div className="flex flex-wrap gap-2"><Input value={team} onChange={(e) => setTeam(e.target.value)} className="h-8 w-48" />
             <Button size="sm" onClick={() => upd(r.id, "inspector", `Inspection done; work order issued to ${team}`, (x) => ({ ...x, status: "REPAIR_IN_PROGRESS", workOrder: { team, due: new Date(Date.now() + 5 * 86400000).toISOString() } }))}>Record inspection & issue work order</Button></div>
         )}
       </div>
@@ -139,16 +145,18 @@ function WorkflowPanel({ r }: { r: Report }) {
           <p className="text-sm font-semibold">Upload post-repair photo</p>
           <Input type="file" accept="image/*" className="mt-1" disabled={busy} onChange={async (e) => {
             const f = e.target.files?.[0]; if (!f) return;
-            const url = await fileToDataUrl(f); await runVerification(url, demoPredictFromBytes(url, categoryOf(r)), true);
+            try { const url = await fileToDataUrl(f); await runVerification(url, demoPredictFromBytes(url, categoryOf(r)), true); }
+            catch (e) { setErr(t(e instanceof UploadError ? e.code : "unreadable_image")); }
           }} />
-          <p className="mt-2 text-xs text-muted-foreground">Or demo follow-up samples:</p>
+          <p className="mt-2 text-xs text-muted-foreground">Road-only demo follow-up samples:</p>
           <div className="mt-1 flex flex-wrap gap-1">
-            {Object.values(AFTER_SAMPLES).map((s) => <Button key={s.id} size="sm" variant="secondary" disabled={busy} onClick={() => void runVerification(s.image, s.output, true)}>{s.label}</Button>)}
-            <Button size="sm" variant="secondary" disabled={busy} onClick={() => void runVerification(AFTER_SAMPLES.repaired.image, AFTER_SAMPLES.repaired.output, false)}>Patched, no location data</Button>
+            {Object.values(AFTER_SAMPLES).filter(() => categoryOf(r) === "road").map((s) => <Button key={s.id} size="sm" variant="secondary" disabled={busy} onClick={() => void runVerification(s.image, s.output, true)}>{s.label}</Button>)}
+            {categoryOf(r) === "road" && <Button size="sm" variant="secondary" disabled={busy} onClick={() => void runVerification(AFTER_SAMPLES.repaired.image, AFTER_SAMPLES.repaired.output, false)}>Patched, no location data</Button>}
           </div>
         </div>
       )}
 
+      {err && <p role="alert" className="mt-2 text-sm text-destructive">{err}</p>}
       {v && (
         <div className="mt-4 space-y-3">
           <Link to="/verification" search={{ id: r.id }} className="text-sm text-primary hover:underline">Open in Verification Lab →</Link>

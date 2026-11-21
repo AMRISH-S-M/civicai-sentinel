@@ -48,8 +48,8 @@ function Analytics() {
       const top = g.reduce((a, b) => ((EXPOSURE_SCORES[b.r.exposure] ?? 0) > (EXPOSURE_SCORES[a.r.exposure] ?? 0) ? b : a));
       const oldest = Math.max(...g.map((x) => ageDays(x.r)));
       const worst = g.reduce((a, b) => ((b.s.score ?? 0) > (a.s.score ?? 0) ? b : a));
-      const reasons = [CATEGORY_LABELS[categoryOf(g[0]!.r)], `Max risk ${maxScore}`, det > 0 ? `Deterioration ${det}/100` : "No prior inspection", `${EXPOSURE_LABELS[top.r.exposure]}`, `${g.length} report(s)`];
-      return { key: k, area: g[0]!.r.area, ward: g[0]!.ward.name, reports: g as typeof rows, priority: stretchPriority({ maxScore, deterioration: det, exposure: expo, reports: g.length }), reasons, oldest, worst };
+      const reasons = [CATEGORY_LABELS[categoryOf(top.r)], `Max risk ${maxScore}`, det > 0 ? `Deterioration ${det}/100` : "No prior inspection", `${EXPOSURE_LABELS[top.r.exposure]}`, `${g.length} report(s)`];
+      return { key: k, area: top.r.area, ward: top.ward.name, reports: g as typeof rows, priority: stretchPriority({ maxScore, deterioration: det, exposure: expo, reports: g.length }), reasons, oldest, worst };
     }).sort((a, b) => b.priority - a.priority);
     const breached = open.filter((x) => slaState(x.s.band, ageDays(x.r)).state === "breached").length;
     const closed = rows.filter((x) => x.r.status === "CLOSED");
@@ -89,7 +89,7 @@ function Analytics() {
             </div>
           </Panel>
           <Panel title="Severity band breakdown (open)">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <div className="h-52 w-52 shrink-0">
                 <ResponsiveContainer>
                   <PieChart>
@@ -139,7 +139,7 @@ function Analytics() {
         </Panel>
 
         <Panel title="Repeat-damage aging & SLA tracker" bodyClassName="p-0">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="text-left text-[11px] uppercase tracking-wider text-muted-foreground"><tr className="border-b border-border">{["Stretch", "Reports", "Oldest open", "Worst band", "SLA target", "SLA"].map((h) => <th key={h} className="px-4 py-2 font-medium">{h}</th>)}</tr></thead>
             <tbody>
               {[...data.stretches].sort((a, b) => b.oldest - a.oldest).map((s) => (
@@ -153,7 +153,7 @@ function Analytics() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </Panel>
       </main>
     </div>

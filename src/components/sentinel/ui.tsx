@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { CLASS_LABELS, STATUS_LABELS, type ModelOutput, type Severity, type Status } from "@/lib/sentinel/model";
+import { Button } from "@/components/ui/button";
 import { setLang, useT } from "@/lib/sentinel/i18n";
 
 export function LangToggle() {
@@ -8,10 +9,10 @@ export function LangToggle() {
   return (
     <div className="flex rounded-full border border-border bg-secondary/60 p-0.5 text-xs font-semibold" role="group" aria-label="Language">
       {(["en", "ta"] as const).map((l) => (
-        <button key={l} onClick={() => setLang(l)} aria-pressed={lang === l}
-          className={cn("rounded-full px-3 py-1 transition", lang === l ? "bg-primary text-primary-foreground glow" : "text-muted-foreground hover:text-foreground")}>
+        <Button variant="ghost" size="sm" key={l} onClick={() => setLang(l)} aria-pressed={lang === l}
+          className={cn("h-7 rounded-full px-3 py-1 text-xs transition", lang === l ? "bg-primary text-primary-foreground glow" : "text-muted-foreground hover:text-foreground")}>
           {l === "en" ? "English" : "தமிழ்"}
-        </button>
+        </Button>
       ))}
     </div>
   );
@@ -39,10 +40,10 @@ export function AppHeader() {
             <span className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Greater Chennai · Civic services</span>
           </span>
         </Link>
-        <nav className="flex flex-wrap gap-1 text-sm font-medium">
+        <nav aria-label="Main navigation" className="order-3 flex w-full gap-1 overflow-x-auto text-sm font-medium xl:order-none xl:w-auto">
           {nav.map((n) => (
             <Link key={n.to} to={n.to} activeOptions={{ exact: !!n.exact }}
-              className="rounded-md px-3 py-1.5 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+              className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
               activeProps={{ className: "bg-secondary text-foreground shadow-[inset_0_-2px_0_var(--primary)]" }}>
               {t(n.k)}
             </Link>
@@ -108,7 +109,7 @@ export function DetectionOverlay({ image, output, className, compact, dim }: { i
           return (
             <div key={i} className={cn("absolute rounded-sm border-2", tone === "gone" ? "border-sev-low" : tone === "new" ? "border-sev-critical" : "border-primary")}
               style={{ left: `${d.box.x * 100}%`, top: `${d.box.y * 100}%`, width: `${d.box.w * 100}%`, height: `${d.box.h * 100}%`, boxShadow: "0 0 18px -2px currentColor, inset 0 0 24px -8px currentColor", color: tone === "gone" ? "var(--sev-low)" : tone === "new" ? "var(--sev-critical)" : "var(--primary)" }}>
-              <span className={cn("absolute left-0 top-0 -translate-y-full whitespace-nowrap rounded-t-sm bg-primary px-1.5 py-0.5 font-mono text-[10px] font-semibold text-primary-foreground", d.box.y < 0.06 && "translate-y-0 rounded-b-sm rounded-t-none")}>
+              <span style={{ maxWidth: `${(1 - d.box.x) / Math.max(d.box.w, 0.01) * 100}%` }} className={cn("absolute left-0 top-0 -translate-y-full break-words rounded-t-sm bg-primary px-1.5 py-0.5 font-mono text-[10px] font-semibold text-primary-foreground", d.box.y < 0.06 && "translate-y-0 rounded-b-sm rounded-t-none")}>
                 {d.cls} {cls(d.cls, CLASS_LABELS[d.cls])} · {d.confidence.toFixed(2)}
               </span>
             </div>
@@ -120,6 +121,7 @@ export function DetectionOverlay({ image, output, className, compact, dim }: { i
           <AiTag text={output.isDemo ? t("demo_pred") : "Model output"} />
           <span className="font-mono">{output.model}</span>
           <span className="ml-auto">{output.detections.length} {t("detections")}</span>
+          {output.detections.length === 0 && <span className="basis-full">{t("no_detections")}</span>}
         </figcaption>
       )}
     </figure>
@@ -153,8 +155,8 @@ export function SeverityPanel({ s }: { s: Severity }) {
 
 export function Panel({ title, children, right, className, bodyClassName }: { title: React.ReactNode; children: React.ReactNode; right?: React.ReactNode; className?: string; bodyClassName?: string }) {
   return (
-    <section className={cn("glass rounded-xl", className)}>
-      <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
+    <section className={cn("glass min-w-0 rounded-xl", className)}>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{title}</h2>{right}
       </div>
       <div className={cn("p-4", bodyClassName)}>{children}</div>
@@ -163,12 +165,10 @@ export function Panel({ title, children, right, className, bodyClassName }: { ti
 }
 
 export function Stat({ label, value, tone, sub, onClick, active }: { label: string; value: React.ReactNode; tone?: string; sub?: string; onClick?: () => void; active?: boolean }) {
-  return (
-    <button onClick={onClick} disabled={!onClick}
-      className={cn("glass rounded-xl p-3 text-left transition", onClick && "hover:border-primary/50", active && "border-primary/70 glow")}>
-      <div className={cn("font-mono text-2xl font-semibold", tone)}>{value}</div>
-      <div className="mt-0.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
-      {sub && <div className="mt-1 text-[11px] text-muted-foreground">{sub}</div>}
-    </button>
-  );
+  const content = <>
+    <div className={cn("font-mono text-2xl font-semibold", tone)}>{value}</div>
+    <div className="mt-0.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
+    {sub && <div className="mt-1 text-[11px] text-muted-foreground">{sub}</div>}
+  </>;
+  return onClick ? <Button variant="ghost" onClick={onClick} className={cn("glass h-auto flex-col items-start rounded-xl p-3 text-left", active && "border-primary/70 glow")}>{content}</Button> : <div className="glass rounded-xl p-3">{content}</div>;
 }

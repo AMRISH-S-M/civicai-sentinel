@@ -5,7 +5,7 @@ import { SlaChip, ageDays } from "@/components/sentinel/QuickInspect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CATEGORIES, CATEGORY_LABELS, CLASS_LABELS, CREWS, DEPARTMENTS, SLA_DAYS, categoryOf, type Category, type Report } from "@/lib/sentinel/model";
-import { AFTER_SAMPLES, demoPredictFromBytes, fileToDataUrl } from "@/lib/sentinel/images";
+import { UploadError, AFTER_SAMPLES, demoPredictFromBytes, fileToDataUrl } from "@/lib/sentinel/images";
 import { logEvent, severityFor, store, submitAfterPhoto, useReports } from "@/lib/sentinel/store";
 import { useT } from "@/lib/sentinel/i18n";
 import { cn } from "@/lib/utils";
@@ -77,6 +77,7 @@ function Field() {
 }
 
 function JobCard({ r, band, score, cls }: { r: Report; band: ReturnType<typeof severityFor>["band"]; score: number | null | undefined; cls: ReturnType<typeof useT>["cls"] }) {
+  const { t } = useT();
   const c = categoryOf(r);
   const [team, setTeam] = useState(r.workOrder?.team ?? CREWS[c][0] ?? "");
   const [note, setNote] = useState("");
@@ -84,7 +85,7 @@ function JobCard({ r, band, score, cls }: { r: Report; band: ReturnType<typeof s
   const [err, setErr] = useState<string | null>(null);
   const act = (text: string, f: (x: Report) => Report = (x) => x) => store.update(r.id, (x) => logEvent(f(x), "inspector", text));
   const dueFor = () => new Date(Date.now() + SLA_DAYS[band] * 864e5).toISOString();
-  const upload = async (img: string, sameLoc: boolean, out = demoPredictFromBytes(img, c)) => { setBusy(true); await submitAfterPhoto(r, img, out, sameLoc); setBusy(false); };
+  const upload = async (img: string, sameLoc: boolean, out = demoPredictFromBytes(img, c)) => { setBusy(true); setErr(null); try { await submitAfterPhoto(r, img, out, sameLoc); } catch { setErr(t("unreadable_image")); } finally { setBusy(false); } };
 
   return (
     <Panel title={<span className="font-mono normal-case text-foreground">{r.id} · {r.area}</span>} right={<StatusBadge status={r.status} />}>
@@ -131,8 +132,8 @@ function JobCard({ r, band, score, cls }: { r: Report; band: ReturnType<typeof s
                   Upload photo
                   <input type="file" accept="image/*" className="sr-only" disabled={busy} onChange={async (e) => {
                     const f = e.target.files?.[0]; if (!f) return;
-                    if (!f.type.startsWith("image/")) return setErr("Please choose an image file.");
-                    try { await upload(await fileToDataUrl(f), true); setErr(null); } catch { setErr("Could not read that image."); }
+                    
+                    try { await upload(await fileToDataUrl(f), true); } catch (e) { setErr(t(e instanceof UploadError ? e.code : "unreadable_image")); }
                   }} />
                 </label>
                 {c === "road" && (
@@ -144,7 +145,7 @@ function JobCard({ r, band, score, cls }: { r: Report; band: ReturnType<typeof s
                 {err && <p className="text-sm text-sev-critical">{err}</p>}
               </>
             ) : r.status === "VERIFICATION_PENDING" ? (
-              <p className="text-sm">Photo submitted — awaiting resident / inspector sign-off. <Link to="/verification" className="text-primary hover:underline">Open Verification Lab</Link></p>
+              <p className="text-sm">Photo submitted — awaiting resident / inspector sign-off. <Link to="/verification" search={{ id: r.id }} className="text-primary hover:underline">Open Verification Lab</Link></p>
             ) : <p className="text-xs text-muted-foreground">Available once the repair has started.</p>}
           </div>
 

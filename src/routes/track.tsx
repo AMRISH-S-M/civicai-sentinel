@@ -64,7 +64,7 @@ function Track() {
 
         <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); const v = q.trim().toUpperCase(); if (v) void navigate({ search: { id: v } }); }}>
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`${t("ticket_no")} — e.g. RPT-1005`} maxLength={20} className="h-11 font-mono" aria-label={t("ticket_no")} />
-          <Button type="submit" className="h-11 px-6 glow">{t("find")}</Button>
+          <Button type="submit" className="h-11 shrink-0 px-6 glow">{t("find")}</Button>
         </form>
         {mine.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">{t("my_tickets")}:
@@ -84,9 +84,9 @@ function Track() {
                 <Info k={t("crew")} v={r.workOrder ? `${r.workOrder.team} · ${t("due")} ${new Date(r.workOrder.due).toLocaleDateString()}` : "—"} />
               </div>
               <p className="mt-3 text-sm text-muted-foreground">{r.area} · {new Date(r.createdAt).toLocaleDateString()}</p>
-              <ol className="mt-5 grid grid-cols-6 gap-1" aria-label={t("progress")}>
+              <ol className="mt-5 grid grid-cols-3 gap-x-2 gap-y-3 sm:grid-cols-6 sm:gap-1" aria-label={t("progress")}>
                 {steps.map((s, i) => (
-                  <li key={s} className="text-center">
+                  <li key={s} className="min-w-0 break-words text-center">
                     <div className={cn("h-1.5 rounded-full", i <= step ? "bg-primary" : "bg-muted", i === step && r.status !== "CLOSED" && "glow")} />
                     <span className={cn("mt-1.5 block text-[11px]", i <= step ? "text-foreground" : "text-muted-foreground")}>{s}</span>
                   </li>

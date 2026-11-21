@@ -1,4 +1,4 @@
-// Synthetic demo road images (SVG) and a clearly-labelled demo predictor.
+// Generated sample photos and a clearly-labelled deterministic demo predictor.
 // No live model is connected in this prototype; outputs are marked isDemo.
 import { classesOf, type Category, type DamageClass, type Detection, type ModelOutput } from "./model";
 
@@ -64,26 +64,39 @@ export function demoPredictFromBytes(dataUrl: string, category: Category = "road
 }
 
 export function meanLuminance(src: string): Promise<number> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const img = new Image();
+    img.crossOrigin = "anonymous";
     img.onload = () => {
       const c = document.createElement("canvas");
       c.width = 64; c.height = 40;
       const ctx = c.getContext("2d");
-      if (!ctx) return resolve(128);
+      if (!ctx) return reject(new Error("Image analysis unavailable."));
+      try {
       ctx.drawImage(img, 0, 0, 64, 40);
       const d = ctx.getImageData(0, 0, 64, 40).data;
       let s = 0;
       for (let i = 0; i < d.length; i += 4) s += 0.299 * (d[i] ?? 0) + 0.587 * (d[i + 1] ?? 0) + 0.114 * (d[i + 2] ?? 0);
       resolve(s / (d.length / 4));
+      } catch { reject(new Error("Could not analyze that image. Try another photo.")); }
     };
-    img.onerror = () => resolve(128);
+    img.onerror = () => reject(new Error("Could not load that image. Try another photo."));
     img.src = src;
   });
 }
 
+export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+export type UploadErrorCode = "invalid_image" | "large_image" | "unreadable_image";
+export class UploadError extends Error {
+  constructor(public code: UploadErrorCode) { super(code); }
+}
+export function validateImageFile(file: Pick<File, "type" | "size">): void {
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size === 0) throw new UploadError("invalid_image");
+  if (file.size > MAX_UPLOAD_BYTES) throw new UploadError("large_image");
+}
 export function fileToDataUrl(file: File, max = 1000): Promise<string> {
   return new Promise((resolve, reject) => {
+    try { validateImageFile(file); } catch (e) { reject(e); return; }
     const r = new FileReader();
     r.onload = () => {
       const img = new Image();
@@ -91,13 +104,15 @@ export function fileToDataUrl(file: File, max = 1000): Promise<string> {
         const k = Math.min(1, max / Math.max(img.width, img.height));
         const c = document.createElement("canvas");
         c.width = img.width * k; c.height = img.height * k;
-        c.getContext("2d")?.drawImage(img, 0, 0, c.width, c.height);
-        resolve(c.toDataURL("image/jpeg", 0.8));
+        const ctx = c.getContext("2d");
+        if (!ctx || !img.width || !img.height) return reject(new UploadError("unreadable_image"));
+        try { ctx.drawImage(img, 0, 0, c.width, c.height); resolve(c.toDataURL("image/jpeg", 0.8)); }
+        catch { reject(new UploadError("unreadable_image")); }
       };
-      img.onerror = reject;
+      img.onerror = () => reject(new UploadError("unreadable_image"));
       img.src = String(r.result);
     };
-    r.onerror = reject;
+    r.onerror = () => reject(new UploadError("unreadable_image"));
     r.readAsDataURL(file);
   });
 }

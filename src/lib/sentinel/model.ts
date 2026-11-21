@@ -316,6 +316,7 @@ export function linkCandidates(r: Report, all: Report[]): LinkSuggestion[] {
     if (d > LINK_RADIUS_M) continue;
     const loc = 1 - d / LINK_RADIUS_M;
     const cat = categoryMatch(r.output.detections, o.output.detections);
+    if (cat === 0) continue;
     const days = Math.abs(Date.parse(r.createdAt) - Date.parse(o.createdAt)) / 86400000;
     const time = Math.exp(-days / 30);
     const score = 0.45 * loc + 0.25 * cat + 0.2 * time;
@@ -346,10 +347,16 @@ export interface VerifyInput {
   afterLat?: number | undefined;
   afterLng?: number | undefined;
   afterMeanLuminance: number; // 0..255
+  comparable?: boolean; // explicit reviewer assessment; no automated registration
 }
 
 export function verifyRepair(i: VerifyInput): { result: VerificationResult; reasons: string[] } {
   const reasons: string[] = [];
+  if (!Number.isFinite(i.afterMeanLuminance)) reasons.push("Follow-up brightness could not be measured");
+  if (!Number.isFinite(Date.parse(i.afterAt)) || !Number.isFinite(Date.parse(i.beforeAt))) reasons.push("Capture time is invalid");
+  if (i.comparable === false) reasons.push("Images are not comparable — recapture from the same viewpoint");
+  if (i.before.length === 0) reasons.push("No original detection to compare — manual review required");
+  if ([...i.before, ...i.after].some((d) => d.confidence < 0.45)) reasons.push("Low-confidence detection — manual review required");
   if (i.afterMeanLuminance < 45) reasons.push("Follow-up image too dark for reliable comparison");
   if (i.afterMeanLuminance > 235) reasons.push("Follow-up image overexposed");
   if (Date.parse(i.afterAt) <= Date.parse(i.beforeAt))

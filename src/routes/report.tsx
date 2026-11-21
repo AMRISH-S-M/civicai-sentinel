@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { SAMPLES, demoPredictFromBytes, fileToDataUrl } from "@/lib/sentinel/images";
+import { SAMPLES, UploadError, demoPredictFromBytes, fileToDataUrl } from "@/lib/sentinel/images";
 import { CATEGORIES, CATEGORY_LABELS, type Category, type ModelOutput } from "@/lib/sentinel/model";
 import { rememberTicket, store } from "@/lib/sentinel/store";
 import { useT } from "@/lib/sentinel/i18n";
@@ -53,11 +53,10 @@ function ReportPage() {
 
   async function onFile(f: File | undefined) {
     if (!f) return;
-    if (!f.type.startsWith("image/")) return setErr("Please choose an image file.");
     try {
       const url = await fileToDataUrl(f);
       setImage(url); setOutput(demoPredictFromBytes(url, category)); setErr(null);
-    } catch { setErr("Could not read that image."); }
+    } catch (e) { setErr(t(e instanceof UploadError ? e.code : "unreadable_image")); }
   }
 
   function submit() {
@@ -90,7 +89,7 @@ function ReportPage() {
             </div>
           </Panel>
           <Panel title={`1 · ${t("step_photo")}`}>
-            <Input type="file" accept="image/*" onChange={(e) => void onFile(e.target.files?.[0])} />
+            <Input aria-label={t("step_photo")} type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => void onFile(e.target.files?.[0])} />
             <p className="mt-2 text-xs text-muted-foreground">{t("upload_hint")}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {Object.values(SAMPLES).filter((s) => s.category === category).map((s) => (
@@ -101,15 +100,15 @@ function ReportPage() {
           <Panel title={`2 · ${t("step_location")}`}>
             <div className="flex flex-wrap gap-1">
               <Button size="sm" variant="outline" onClick={() => {
-                if (!navigator.geolocation) return setGeoMsg("Location not available in this browser.");
-                navigator.geolocation.getCurrentPosition((p) => { setLat(p.coords.latitude.toFixed(5)); setLng(p.coords.longitude.toFixed(5)); setGeoMsg(null); }, () => setGeoMsg(t("geo_denied")));
+                if (!navigator.geolocation) return setGeoMsg(t("geo_unavailable"));
+                navigator.geolocation.getCurrentPosition((p) => { setLat(p.coords.latitude.toFixed(5)); setLng(p.coords.longitude.toFixed(5)); setGeoMsg(null); }, () => setGeoMsg(t("geo_denied")), { timeout: 10000 });
               }}>{t("use_location")}</Button>
               {PRESETS.map((p) => <Button key={p.label} size="sm" variant="secondary" onClick={() => { setLat(String(p.lat)); setLng(String(p.lng)); setArea(p.label.replace(/ \(.*\)/, "")); }}>{p.label}</Button>)}
             </div>
             {geoMsg && <p className="mt-1 text-xs text-destructive">{geoMsg}</p>}
             <div className="mt-2 grid grid-cols-2 gap-2">
-              <div><Label>{t("latitude")}</Label><Input value={lat} onChange={(e) => setLat(e.target.value)} /></div>
-              <div><Label>{t("longitude")}</Label><Input value={lng} onChange={(e) => setLng(e.target.value)} /></div>
+              <div><Label htmlFor="latitude">{t("latitude")}</Label><Input id="latitude" inputMode="decimal" value={lat} onChange={(e) => setLat(e.target.value)} /></div>
+              <div><Label htmlFor="longitude">{t("longitude")}</Label><Input id="longitude" inputMode="decimal" value={lng} onChange={(e) => setLng(e.target.value)} /></div>
             </div>
             <div className="mt-2"><Label>{t("landmark")}</Label><Input value={area} maxLength={120} onChange={(e) => setArea(e.target.value)} /></div>
             {locOk && <IncidentMap key={`${lat},${lng}`} center={[latN, lngN]} className="mt-2 h-48 w-full rounded-sm" points={[{ id: "new", lat: latN, lng: lngN, color: "var(--accent)", label: "Your report" }]} />}

@@ -35,3 +35,5 @@ use the editor.
 - Demo sample photos (all categories) are Lovable asset pointers in src/assets/roads with hand-placed demo boxes in images.ts; keep boxes matched to the photo when swapping images.
 - Issue categories and their detection classes, damage scores and departments are defined only in model.ts (CLASS_CATEGORY, DEPARTMENTS); add new categories there first.
 - Citizen tracker (/track) and field dispatch (/field) reuse store.ts signOff/submitAfterPhoto; crews per category live in model.ts CREWS so dispatch and tracking show the same assignment.
+- Validate all citizen and completion photo uploads through images.ts and always release busy state on failure; shared handling prevents workflow-specific bypasses.
+- Keep pitch and evaluation documentation under docs/ and link it from README; disclose demo heuristics separately from unmeasured model performance.
