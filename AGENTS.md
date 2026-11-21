@@ -31,3 +31,5 @@ use the editor.
 
 - CivicAI Sentinel runs in local seeded demo mode: data lives in localStorage via src/lib/sentinel/store.ts and AI detections are labelled demo predictions — the blueprint requires a demo that never depends on live APIs and never fakes live inference.
 - Scoring, duplicate-linking and before/after verification rules live only in src/lib/sentinel/model.ts with tests beside it, so every UI shows the same explainable numbers.
+- UI copy for citizen intake and triage terms goes through src/lib/sentinel/i18n.ts (English/Tamil) so both languages stay in sync.
+- Demo sample photos are Lovable asset pointers in src/assets/roads with hand-placed demo boxes in images.ts; keep boxes matched to the photo when swapping images.

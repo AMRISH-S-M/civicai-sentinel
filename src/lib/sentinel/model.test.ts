@@ -6,9 +6,9 @@ const pothole: Detection = { cls: "D40", confidence: 0.82, box: { x: 0.4, y: 0.5
 
 describe("severity", () => {
   it("applies 0.35/0.20/0.20/0.15/0.10 weights", () => {
-    // damage 90, size 16, exposure 90 (school), recurrence 70 (3 reports), deterioration 0
+    // damage 90, size 8, exposure 90 (school), recurrence 70 (3 reports), deterioration 0
     const s = computeSeverity({ detections: [pothole], exposure: "school_zone", linkedReportsIn30Days: 3 });
-    expect(s.score).toBe(Math.round(0.35 * 90 + 0.2 * 16 + 0.2 * 90 + 0.15 * 70 + 0.1 * 0));
+    expect(s.score).toBe(Math.round(0.35 * 90 + 0.2 * 8 + 0.2 * 90 + 0.15 * 70 + 0.1 * 0));
     expect(s.band).toBe("High");
   });
   it("reports incomplete instead of fabricating missing exposure", () => {
@@ -33,5 +33,23 @@ describe("linking", () => {
     const ids = linkCandidates(r3, all).map((s) => s.other.id);
     expect(ids).toContain("RPT-1001");
     expect(ids).not.toContain("RPT-1004");
+  });
+});
+
+import { slaState, stretchPriority } from "./model";
+describe("SLA", () => {
+  it("critical breaches after 2 days", () => expect(slaState("Critical", 3).state).toBe("breached"));
+  it("high on track at day 1", () => expect(slaState("High", 1).state).toBe("on_track"));
+});
+describe("stretch priority", () => {
+  it("weights deterioration and exposure", () => expect(stretchPriority({ maxScore: 60, deterioration: 100, exposure: 90, reports: 3 })).toBe(Math.round(24 + 30 + 18 + 7)));
+});
+
+import { diffDetections } from "./model";
+describe("defect diff", () => {
+  it("marks removed damage as resolved and overlapping as remaining", () => {
+    const moved: Detection = { ...pothole, box: { ...pothole.box, x: 0.42 } };
+    expect(diffDetections([pothole], []).beforeState).toEqual(["resolved"]);
+    expect(diffDetections([pothole], [moved]).beforeState).toEqual(["remaining"]);
   });
 });

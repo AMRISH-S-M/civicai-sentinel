@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { SAMPLES, demoPredictFromBytes, fileToDataUrl } from "@/lib/sentinel/images";
 import type { ModelOutput } from "@/lib/sentinel/model";
 import { store } from "@/lib/sentinel/store";
+import { useT } from "@/lib/sentinel/i18n";
 
 export const Route = createFileRoute("/report")({
   head: () => ({
@@ -33,6 +34,7 @@ const PRESETS = [
 
 function ReportPage() {
   const navigate = useNavigate();
+  const { t, lang } = useT();
   const [image, setImage] = useState<string | null>(null);
   const [output, setOutput] = useState<ModelOutput | null>(null);
   const [lat, setLat] = useState("");
@@ -56,9 +58,9 @@ function ReportPage() {
   }
 
   function submit() {
-    if (!image || !output) return setErr("Add a photo first.");
-    if (!locOk) return setErr("Add a valid location.");
-    if (!consent) return setErr("Consent is required to submit evidence.");
+    if (!image || !output) return setErr(t("need_photo"));
+    if (!locOk) return setErr(t("need_loc"));
+    if (!consent) return setErr(t("need_consent"));
     const id = `RPT-${Math.floor(2000 + Math.random() * 7999)}`;
     const now = new Date().toISOString();
     store.add({ id, createdAt: now, lat: latN, lng: lngN, area: area.trim() || "Unnamed location", description: desc.trim().slice(0, 1000), consent, image, output,
@@ -72,47 +74,47 @@ function ReportPage() {
       <AppHeader />
       <main className="mx-auto grid max-w-6xl gap-4 px-4 py-5 lg:grid-cols-2">
         <div className="space-y-4">
-          <h1 className="text-3xl font-black tracking-tight">Report a road defect</h1>
-          <Panel title="1 · Photo evidence">
+          <div><p className="font-mono text-[11px] uppercase tracking-[0.2em] text-primary">Citizen intake · {lang === "ta" ? "குடிமக்கள்" : "Public"}</p><h1 className="mt-1 text-3xl font-bold tracking-tight">{t("report_title")}</h1><p className="text-sm text-muted-foreground">{t("report_sub")}</p></div>
+          <Panel title={`1 · ${t("step_photo")}`}>
             <Input type="file" accept="image/*" onChange={(e) => void onFile(e.target.files?.[0])} />
-            <p className="mt-2 text-xs text-muted-foreground">Or use a demo sample image:</p>
-            <div className="mt-1 flex flex-wrap gap-1">
+            <p className="mt-2 text-xs text-muted-foreground">{t("upload_hint")}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
               {Object.values(SAMPLES).map((s) => (
-                <button key={s.id} onClick={() => { setImage(s.image); setOutput(s.output); }} className="rounded-sm border border-border bg-secondary px-2 py-1 text-xs font-semibold hover:bg-accent">{s.label}</button>
+                <button key={s.id} onClick={() => { setImage(s.image); setOutput(s.output); }} className={`overflow-hidden rounded-lg border text-left transition hover:border-primary/60 ${image === s.image ? "border-primary glow" : "border-border"}`}><img src={s.image} alt="" className="h-16 w-24 object-cover" /><span className="block w-24 truncate px-1.5 py-1 text-[11px]">{lang === "ta" ? s.labelTa : s.label}</span></button>
               ))}
             </div>
           </Panel>
-          <Panel title="2 · Location">
+          <Panel title={`2 · ${t("step_location")}`}>
             <div className="flex flex-wrap gap-1">
               <Button size="sm" variant="outline" onClick={() => {
                 if (!navigator.geolocation) return setGeoMsg("Location not available in this browser.");
-                navigator.geolocation.getCurrentPosition((p) => { setLat(p.coords.latitude.toFixed(5)); setLng(p.coords.longitude.toFixed(5)); setGeoMsg(null); }, () => setGeoMsg("Location permission denied — enter it manually or pick a preset."));
-              }}>Use my location</Button>
+                navigator.geolocation.getCurrentPosition((p) => { setLat(p.coords.latitude.toFixed(5)); setLng(p.coords.longitude.toFixed(5)); setGeoMsg(null); }, () => setGeoMsg(t("geo_denied")));
+              }}>{t("use_location")}</Button>
               {PRESETS.map((p) => <Button key={p.label} size="sm" variant="secondary" onClick={() => { setLat(String(p.lat)); setLng(String(p.lng)); setArea(p.label.replace(/ \(.*\)/, "")); }}>{p.label}</Button>)}
             </div>
             {geoMsg && <p className="mt-1 text-xs text-destructive">{geoMsg}</p>}
             <div className="mt-2 grid grid-cols-2 gap-2">
-              <div><Label>Latitude</Label><Input value={lat} onChange={(e) => setLat(e.target.value)} /></div>
-              <div><Label>Longitude</Label><Input value={lng} onChange={(e) => setLng(e.target.value)} /></div>
+              <div><Label>{t("latitude")}</Label><Input value={lat} onChange={(e) => setLat(e.target.value)} /></div>
+              <div><Label>{t("longitude")}</Label><Input value={lng} onChange={(e) => setLng(e.target.value)} /></div>
             </div>
-            <div className="mt-2"><Label>Street / landmark</Label><Input value={area} maxLength={120} onChange={(e) => setArea(e.target.value)} /></div>
+            <div className="mt-2"><Label>{t("landmark")}</Label><Input value={area} maxLength={120} onChange={(e) => setArea(e.target.value)} /></div>
             {locOk && <IncidentMap key={`${lat},${lng}`} center={[latN, lngN]} className="mt-2 h-48 w-full rounded-sm" points={[{ id: "new", lat: latN, lng: lngN, color: "var(--accent)", label: "Your report" }]} />}
           </Panel>
-          <Panel title="3 · Description & consent">
-            <Textarea value={desc} maxLength={1000} placeholder="What do you see? Any safety risk?" onChange={(e) => setDesc(e.target.value)} />
+          <Panel title={`3 · ${t("step_desc")}`}>
+            <Textarea value={desc} maxLength={1000} placeholder={t("desc_ph")} onChange={(e) => setDesc(e.target.value)} />
             <label className="mt-3 flex items-start gap-2 text-sm">
               <Checkbox checked={consent} onCheckedChange={(v) => setConsent(v === true)} className="mt-0.5" />
-              I consent to this photo and location being stored and reviewed by municipal staff for this grievance. Avoid faces and number plates.
+              {t("consent")}
             </label>
           </Panel>
           {err && <p className="text-sm font-semibold text-destructive">{err}</p>}
-          <Button size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={!consent || !image || !locOk} onClick={submit}>Submit report</Button>
+          <Button size="lg" className="w-full glow" disabled={!consent || !image || !locOk} onClick={submit}>{t("submit")}</Button>
         </div>
-        <div className="space-y-2 lg:pt-12">
-          <h2 className="text-xs font-black uppercase tracking-wider">Detection preview</h2>
+        <div className="space-y-2 lg:sticky lg:top-24 lg:self-start lg:pt-16">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{t("preview")}</h2>
           {image && output ? <DetectionOverlay image={image} output={output} /> :
-            <div className="grid h-64 place-items-center rounded-sm border border-dashed border-border text-sm text-muted-foreground">Add a photo to see detected defects</div>}
-          <p className="text-xs text-muted-foreground">Detection confidence is not severity or urgency. Uploaded photos receive a deterministic demo prediction because no trained model is connected in this prototype.</p>
+            <div className="grid h-64 place-items-center rounded-xl border border-dashed border-border text-sm text-muted-foreground">{t("preview_empty")}</div>}
+          <p className="text-xs text-muted-foreground">{t("conf_note")}</p>
         </div>
       </main>
     </div>

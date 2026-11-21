@@ -1,0 +1,88 @@
+import { useSyncExternalStore } from "react";
+import type { DamageClass, Severity, Status, VerificationResult } from "./model";
+
+export type Lang = "en" | "ta";
+const KEY = "civicai-lang";
+let lang: Lang | null = null;
+const ls = new Set<() => void>();
+const get = (): Lang => {
+  if (lang) return lang;
+  try { lang = localStorage.getItem(KEY) === "ta" ? "ta" : "en"; } catch { lang = "en"; }
+  return lang;
+};
+export function setLang(l: Lang) { lang = l; try { localStorage.setItem(KEY, l); } catch { /* ignore */ } ls.forEach((f) => f()); }
+export function useLang(): Lang {
+  return useSyncExternalStore((f) => { ls.add(f); return () => ls.delete(f); }, get, () => "en");
+}
+
+const D = {
+  nav_command: ["Command Center", "கட்டுப்பாட்டு மையம்"],
+  nav_analytics: ["Analytics & SLA", "பகுப்பாய்வு & SLA"],
+  nav_lab: ["Verification Lab", "சரிபார்ப்பு ஆய்வகம்"],
+  nav_report: ["Citizen Report", "குடிமக்கள் புகார்"],
+  demo_mode: ["Local demo mode · seeded data", "உள்ளூர் டெமோ · மாதிரி தரவு"],
+  report_title: ["Report a road defect", "சாலை சேதத்தைப் புகாரளிக்கவும்"],
+  report_sub: ["Your photo becomes civic evidence. Municipal staff review every report.", "உங்கள் புகைப்படம் குடிமைச் சான்றாகும். ஒவ்வொரு புகாரையும் நகராட்சி ஊழியர்கள் பார்வையிடுவர்."],
+  step_photo: ["Photo evidence", "புகைப்படச் சான்று"],
+  upload_hint: ["Upload a photo, or use a demo sample:", "புகைப்படத்தைப் பதிவேற்றவும் அல்லது மாதிரியைப் பயன்படுத்தவும்:"],
+  step_location: ["Location", "இருப்பிடம்"],
+  use_location: ["Use my location", "என் இருப்பிடம்"],
+  geo_denied: ["Location permission denied — enter it manually or pick a preset.", "இருப்பிட அனுமதி மறுக்கப்பட்டது — கைமுறையாக உள்ளிடவும்."],
+  latitude: ["Latitude", "அட்சரேகை"],
+  longitude: ["Longitude", "தீர்க்கரேகை"],
+  landmark: ["Street / landmark", "தெரு / அடையாளம்"],
+  step_desc: ["Description & consent", "விவரம் & ஒப்புதல்"],
+  desc_ph: ["What do you see? Any safety risk?", "நீங்கள் என்ன பார்க்கிறீர்கள்? ஏதேனும் பாதுகாப்பு அபாயம்?"],
+  consent: ["I consent to this photo and location being stored and reviewed by municipal staff for this grievance. Avoid faces and number plates.", "இந்தப் புகைப்படமும் இருப்பிடமும் இந்தப் புகாருக்காகச் சேமிக்கப்பட்டு நகராட்சி ஊழியர்களால் பார்வையிடப்பட ஒப்புகிறேன். முகங்கள், வாகன எண்களைத் தவிர்க்கவும்."],
+  submit: ["Submit report", "புகாரைச் சமர்ப்பி"],
+  need_photo: ["Add a photo first.", "முதலில் புகைப்படம் சேர்க்கவும்."],
+  need_loc: ["Add a valid location.", "சரியான இருப்பிடத்தைச் சேர்க்கவும்."],
+  need_consent: ["Consent is required to submit evidence.", "சமர்ப்பிக்க ஒப்புதல் தேவை."],
+  preview: ["Detection preview", "கண்டறிதல் முன்னோட்டம்"],
+  preview_empty: ["Add a photo to see detected defects", "சேதங்களைக் காண புகைப்படம் சேர்க்கவும்"],
+  conf_note: ["Detection confidence is not severity or urgency. Uploaded photos receive a deterministic demo prediction because no trained model is connected.", "கண்டறிதல் நம்பகத்தன்மை தீவிரம் அல்ல. பயிற்சி பெற்ற மாதிரி இணைக்கப்படாததால் பதிவேற்றங்களுக்கு டெமோ கணிப்பு வழங்கப்படும்."],
+  demo_pred: ["Demo prediction — not live inference", "டெமோ கணிப்பு — நேரடி AI அல்ல"],
+  detections: ["detection(s)", "கண்டறிதல்(கள்)"],
+  risk: ["Risk", "அபாயம்"],
+  status: ["Status", "நிலை"],
+  defects: ["Defects", "சேதங்கள்"],
+  area: ["Area", "பகுதி"],
+  age: ["Age", "வயது"],
+  ward: ["Ward", "வார்டு"],
+  priority_queue: ["Priority queue", "முன்னுரிமை வரிசை"],
+  risk_map: ["Live risk map", "நேரடி அபாய வரைபடம்"],
+  open: ["Open", "திறந்தவை"],
+  all: ["All", "அனைத்தும்"],
+  new_report: ["New citizen report", "புதிய புகார்"],
+  reset: ["Reset demo", "டெமோ மீட்டமை"],
+  open_record: ["Open full record", "முழு பதிவைத் திற"],
+  link_sugg: ["link suggestion", "இணைப்பு பரிந்துரை"],
+  needs_conf: ["needs confirmation", "உறுதிப்படுத்தல் தேவை"],
+  severity: ["Explainable severity", "விளக்கக்கூடிய தீவிரம்"],
+  sla: ["SLA", "சேவை காலக்கெடு"],
+  breached: ["Breached", "மீறப்பட்டது"],
+  at_risk: ["At risk", "அபாயத்தில்"],
+  on_track: ["On track", "சரியான பாதையில்"],
+} as const;
+export type Key = keyof typeof D;
+
+const STATUS_TA: Record<Status, string> = {
+  SUBMITTED: "சமர்ப்பிக்கப்பட்டது", TRIAGED: "வகைப்படுத்தப்பட்டது", INSPECTION_SCHEDULED: "ஆய்வு திட்டமிடப்பட்டது",
+  REPAIR_IN_PROGRESS: "பழுதுபார்ப்பு நடைபெறுகிறது", VERIFICATION_PENDING: "சரிபார்ப்பு நிலுவையில்", CLOSED: "மூடப்பட்டது", REOPENED: "மீண்டும் திறக்கப்பட்டது",
+};
+const BAND_TA: Record<Severity["band"], string> = { Low: "குறைவு", Moderate: "மிதமானது", High: "அதிகம்", Critical: "மிக முக்கியம்", Incomplete: "முழுமையற்ற மதிப்பீடு" };
+const CLASS_TA: Record<DamageClass, string> = { D00: "நீளவாக்கு விரிசல்", D10: "குறுக்கு விரிசல்", D20: "வலை விரிசல்", D40: "குழி" };
+const VER_TA: Record<VerificationResult, string> = { APPEARS_IMPROVED: "மேம்பட்டதாகத் தெரிகிறது", DAMAGE_STILL_VISIBLE: "சேதம் இன்னும் தெரிகிறது", INCONCLUSIVE: "முடிவில்லை" };
+
+export function useT() {
+  const l = useLang();
+  const i = l === "ta" ? 1 : 0;
+  return {
+    lang: l,
+    t: (k: Key) => D[k][i],
+    status: (s: Status, en: string) => (l === "ta" ? STATUS_TA[s] : en),
+    band: (b: Severity["band"]) => (l === "ta" ? BAND_TA[b] : b === "Incomplete" ? "Incomplete assessment" : b),
+    cls: (c: DamageClass, en: string) => (l === "ta" ? CLASS_TA[c] : en),
+    ver: (v: VerificationResult, en: string) => (l === "ta" ? VER_TA[v] : en),
+  };
+}

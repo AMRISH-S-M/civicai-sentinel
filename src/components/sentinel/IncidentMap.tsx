@@ -4,7 +4,7 @@ import "leaflet/dist/leaflet.css";
 export interface MapPoint { id: string; lat: number; lng: number; color: string; label: string; ring?: boolean }
 
 /** Leaflet loaded only in the browser after mount (SSR-safe). */
-export function IncidentMap({ points, onSelect, className, center }: { points: MapPoint[]; onSelect?: (id: string) => void; className?: string; center?: [number, number] }) {
+export function IncidentMap({ points, onSelect, className, center, selectedId }: { points: MapPoint[]; onSelect?: (id: string) => void; className?: string; center?: [number, number]; selectedId?: string | null }) {
   const el = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const layerRef = useRef<import("leaflet").LayerGroup | null>(null);
@@ -32,7 +32,10 @@ export function IncidentMap({ points, onSelect, className, center }: { points: M
     const css = getComputedStyle(document.documentElement);
     const resolve = (c: string) => { const m = /^var\((--[\w-]+)\)$/.exec(c); return m?.[1] ? css.getPropertyValue(m[1]).trim() || c : c; };
     for (const p of points) {
-      const c = L.circleMarker([p.lat, p.lng], { radius: p.ring ? 11 : 8, color: p.ring ? "#111" : "#fff", weight: p.ring ? 3 : 2, fillColor: resolve(p.color), fillOpacity: 0.95 });
+      const sel = p.id === selectedId;
+      const fill = resolve(p.color);
+      L.circleMarker([p.lat, p.lng], { radius: sel ? 22 : 15, stroke: false, fillColor: fill, fillOpacity: sel ? 0.3 : 0.16, interactive: false }).addTo(g);
+      const c = L.circleMarker([p.lat, p.lng], { radius: sel ? 10 : 7, color: p.ring ? resolve("var(--primary)") : resolve("var(--background)"), weight: p.ring || sel ? 3 : 2, dashArray: p.ring ? "3 3" : undefined, fillColor: fill, fillOpacity: 1 });
       c.bindTooltip(p.label);
       c.on("click", () => selRef.current?.(p.id));
       c.addTo(g);

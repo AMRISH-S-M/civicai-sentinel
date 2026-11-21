@@ -3,9 +3,9 @@ import { useState } from "react";
 import { AppHeader, AiTag, DetectionOverlay, Panel, SeverityBadge, SeverityPanel, StatusBadge } from "@/components/sentinel/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AFTER_SAMPLES, demoPredictFromBytes, fileToDataUrl, meanLuminance } from "@/lib/sentinel/images";
-import { EXPOSURE_LABELS, VERIFICATION_COPY, linkCandidates, verifyRepair, type Exposure, type ModelOutput, type Report } from "@/lib/sentinel/model";
-import { logEvent, severityFor, store, useReports } from "@/lib/sentinel/store";
+import { AFTER_SAMPLES, demoPredictFromBytes, fileToDataUrl } from "@/lib/sentinel/images";
+import { EXPOSURE_LABELS, VERIFICATION_COPY, linkCandidates, type Exposure, type ModelOutput, type Report } from "@/lib/sentinel/model";
+import { logEvent, severityFor, signOff, store, submitAfterPhoto, useReports } from "@/lib/sentinel/store";
 
 export const Route = createFileRoute("/incidents/$id")({
   head: ({ params }) => ({
@@ -37,12 +37,12 @@ function IncidentPage() {
   return (
     <div className="min-h-screen">
       <AppHeader />
-      <main className="mx-auto max-w-7xl space-y-4 px-4 py-5">
+      <main className="mx-auto max-w-[1400px] space-y-4 px-4 py-5">
         <div className="flex flex-wrap items-center gap-3">
           <Link to="/" className="text-sm text-muted-foreground underline">← Dashboard</Link>
           <h1 className="font-mono text-2xl font-black">{r.id}</h1>
           <SeverityBadge s={s} /><StatusBadge status={r.status} />
-          {r.incidentId && <span className="rounded-sm bg-secondary px-2 py-0.5 text-xs font-semibold">Incident {r.incidentId}</span>}
+          {r.incidentId && <span className="rounded-md border border-border px-2 py-0.5 font-mono text-xs">Incident {r.incidentId}</span>}
           <span className="text-sm text-muted-foreground">{r.area} · {new Date(r.createdAt).toLocaleString()}</span>
         </div>
         <div className="grid gap-4 lg:grid-cols-[1fr_400px]">
@@ -118,17 +118,7 @@ function WorkflowPanel({ r }: { r: Report }) {
   const [note, setNote] = useState("");
 
   async function runVerification(afterImage: string, afterOutput: ModelOutput, sameLocation: boolean) {
-    setBusy(true);
-    const lum = await meanLuminance(afterImage);
-    const capturedAt = new Date().toISOString();
-    const afterLat = sameLocation ? r.lat + 0.00003 : undefined;
-    const afterLng = sameLocation ? r.lng + 0.00002 : undefined;
-    const v = verifyRepair({ before: r.output.detections, after: afterOutput.detections, beforeAt: r.createdAt, afterAt: capturedAt, beforeLat: r.lat, beforeLng: r.lng, afterLat, afterLng, afterMeanLuminance: lum });
-    upd(r.id, "inspector", `Completion photo uploaded — AI comparison: ${VERIFICATION_COPY[v.result].label}`, (x) => ({
-      ...x, status: "VERIFICATION_PENDING",
-      verification: { ...v, afterImage, afterOutput, capturedAt, ...(afterLat != null && { afterLat }), ...(afterLng != null && { afterLng }) },
-    }));
-    setBusy(false);
+    setBusy(true); await submitAfterPhoto(r, afterImage, afterOutput, sameLocation); setBusy(false);
   }
 
   const v = r.verification;
@@ -161,11 +151,12 @@ function WorkflowPanel({ r }: { r: Report }) {
 
       {v && (
         <div className="mt-4 space-y-3">
+          <Link to="/verification" search={{ id: r.id }} className="text-sm text-primary hover:underline">Open in Verification Lab →</Link>
           <div className="grid gap-2 sm:grid-cols-2">
             <div><p className="mb-1 text-xs font-semibold uppercase">Before</p><DetectionOverlay image={r.image} output={r.output} /></div>
             <div><p className="mb-1 text-xs font-semibold uppercase">After · {new Date(v.capturedAt).toLocaleString()}</p><DetectionOverlay image={v.afterImage} output={v.afterOutput} /></div>
           </div>
-          <div className={`rounded-sm border-2 p-3 ${v.result === "APPEARS_IMPROVED" ? "border-sev-low" : v.result === "DAMAGE_STILL_VISIBLE" ? "border-sev-critical" : "border-sev-moderate"}`}>
+          <div className={`rounded-xl border-2 p-3 ${v.result === "APPEARS_IMPROVED" ? "border-sev-low" : v.result === "DAMAGE_STILL_VISIBLE" ? "border-sev-critical" : "border-sev-moderate"}`}>
             <div className="flex items-center justify-between"><p className="text-lg font-black">{VERIFICATION_COPY[v.result].label}</p><AiTag /></div>
             <p className="text-sm">{VERIFICATION_COPY[v.result].ui}</p>
             <ul className="mt-1 list-disc pl-5 text-xs text-muted-foreground">{v.reasons.map((x, i) => <li key={i}>{x}</li>)}</ul>
@@ -176,8 +167,8 @@ function WorkflowPanel({ r }: { r: Report }) {
           ) : (
             <div className="flex flex-wrap items-center gap-2">
               <Input placeholder="Optional note" value={note} onChange={(e) => setNote(e.target.value)} className="h-8 max-w-xs" />
-              <Button size="sm" className="bg-sev-low text-primary hover:bg-sev-low/80" onClick={() => upd(r.id, "citizen", `Repair confirmed by human reviewer${note ? `: ${note}` : ""}`, (x) => ({ ...x, status: "CLOSED", ...(x.verification && { verification: { ...x.verification, human: { decision: "confirmed" as const, at: new Date().toISOString(), ...(note && { note }) } } }) }))}>Confirm repair & close</Button>
-              <Button size="sm" variant="destructive" onClick={() => upd(r.id, "citizen", `Repair disputed — reopened${note ? `: ${note}` : ""}`, (x) => ({ ...x, status: "REOPENED", ...(x.verification && { verification: { ...x.verification, human: { decision: "disputed" as const, at: new Date().toISOString(), ...(note && { note }) } } }) }))}>Dispute & reopen</Button>
+              <Button size="sm" className="bg-sev-low text-primary-foreground hover:bg-sev-low/80" onClick={() => signOff(r.id, "confirmed", "citizen", note)}>Confirm repair & close</Button>
+              <Button size="sm" variant="destructive" onClick={() => signOff(r.id, "disputed", "citizen", note)}>Dispute & reopen</Button>
             </div>
           )}
         </div>

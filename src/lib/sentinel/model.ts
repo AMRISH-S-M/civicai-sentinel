@@ -199,7 +199,7 @@ export function computeSeverity(input: SeverityInput): Severity {
   }
 
   const area = visibleArea(input.detections);
-  const sizeVal = Math.round(Math.min(100, area * 400)); // 25% of frame → 100
+  const sizeVal = Math.round(Math.min(100, area * 200)); // 50% of frame → 100
   push(
     "size",
     "Visible size proxy",
@@ -350,4 +350,56 @@ export function verifyRepair(i: VerifyInput): { result: VerificationResult; reas
   }
   reasons.push("Partial change — detection unstable between images");
   return { result: "INCONCLUSIVE", reasons };
+}
+
+// ---------- Phase 8: preventive analytics & SLA (prototype heuristics) ----------
+export const WARDS = [
+  { id: "W-102", name: "Anna Nagar", lat: 13.085, lng: 80.21 },
+  { id: "W-109", name: "Nungambakkam", lat: 13.062, lng: 80.245 },
+  { id: "W-133", name: "T. Nagar", lat: 13.041, lng: 80.234 },
+  { id: "W-098", name: "Kilpauk", lat: 13.073, lng: 80.22 },
+  { id: "W-128", name: "Vadapalani", lat: 13.05, lng: 80.212 },
+] as const;
+
+export function wardOf(lat: number, lng: number): (typeof WARDS)[number] {
+  let best: (typeof WARDS)[number] = WARDS[0];
+  let bd = Infinity;
+  for (const w of WARDS) {
+    const d = haversineM(lat, lng, w.lat, w.lng);
+    if (d < bd) { bd = d; best = w; }
+  }
+  return best;
+}
+
+/** Demo SLA targets in days per band — not municipal standards. */
+export const SLA_DAYS: Record<Severity["band"], number> = { Critical: 2, High: 7, Moderate: 14, Low: 30, Incomplete: 7 };
+
+export function slaState(band: Severity["band"], ageDays: number) {
+  const target = SLA_DAYS[band];
+  const remaining = target - ageDays;
+  return { target, remaining, state: remaining < 0 ? "breached" : remaining <= Math.max(1, target * 0.25) ? "at_risk" : "on_track" } as const;
+}
+
+/** Preventive stretch priority: emphasizes deterioration and public exposure. */
+export function stretchPriority(f: { maxScore: number; deterioration: number; exposure: number; reports: number }): number {
+  return Math.round(0.4 * f.maxScore + 0.3 * f.deterioration + 0.2 * f.exposure + 0.1 * Math.min(100, (f.reports - 1) * 35));
+}
+
+// ---------- Defect diffing (before vs after detections) ----------
+export function iou(a: Detection["box"], b: Detection["box"]): number {
+  const x1 = Math.max(a.x, b.x), y1 = Math.max(a.y, b.y);
+  const x2 = Math.min(a.x + a.w, b.x + b.w), y2 = Math.min(a.y + a.h, b.y + b.h);
+  const inter = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+  const u = a.w * a.h + b.w * b.h - inter;
+  return u > 0 ? inter / u : 0;
+}
+export function diffDetections(before: Detection[], after: Detection[]) {
+  const usedAfter = new Set<number>();
+  const beforeState = before.map((d) => {
+    const j = after.findIndex((a, k) => !usedAfter.has(k) && iou(a.box, d.box) >= 0.2);
+    if (j >= 0) { usedAfter.add(j); return "remaining" as const; }
+    return "resolved" as const;
+  });
+  const afterState = after.map((_, k) => (usedAfter.has(k) ? ("remaining" as const) : ("new" as const)));
+  return { beforeState, afterState };
 }

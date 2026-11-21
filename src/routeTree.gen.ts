@@ -10,7 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as ReportRouteImport } from './routes/report'
+import { Route as VerificationRouteImport } from './routes/verification'
 import { Route as IncidentsIdRouteImport } from './routes/incidents/$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -18,9 +20,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportRoute = ReportRouteImport.update({
   id: '/report',
   path: '/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerificationRoute = VerificationRouteImport.update({
+  id: '/verification',
+  path: '/verification',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IncidentsIdRoute = IncidentsIdRouteImport.update({
@@ -31,31 +43,45 @@ const IncidentsIdRoute = IncidentsIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
   '/report': typeof ReportRoute
+  '/verification': typeof VerificationRoute
   '/incidents/$id': typeof IncidentsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
   '/report': typeof ReportRoute
+  '/verification': typeof VerificationRoute
   '/incidents/$id': typeof IncidentsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
   '/report': typeof ReportRoute
+  '/verification': typeof VerificationRoute
   '/incidents/$id': typeof IncidentsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/report' | '/incidents/$id'
+  fullPaths: '/' | '/analytics' | '/report' | '/verification' | '/incidents/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/report' | '/incidents/$id'
-  id: '__root__' | '/' | '/report' | '/incidents/$id'
+  to: '/' | '/analytics' | '/report' | '/verification' | '/incidents/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/analytics'
+    | '/report'
+    | '/verification'
+    | '/incidents/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnalyticsRoute: typeof AnalyticsRoute
   ReportRoute: typeof ReportRoute
+  VerificationRoute: typeof VerificationRoute
   IncidentsIdRoute: typeof IncidentsIdRoute
 }
 
@@ -68,11 +94,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/report': {
       id: '/report'
       path: '/report'
       fullPath: '/report'
       preLoaderRoute: typeof ReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verification': {
+      id: '/verification'
+      path: '/verification'
+      fullPath: '/verification'
+      preLoaderRoute: typeof VerificationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/incidents/$id': {
@@ -87,7 +127,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnalyticsRoute: AnalyticsRoute,
   ReportRoute: ReportRoute,
+  VerificationRoute: VerificationRoute,
   IncidentsIdRoute: IncidentsIdRoute,
 }
 export const routeTree = rootRouteImport
