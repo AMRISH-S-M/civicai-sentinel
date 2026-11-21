@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { AFTER_SAMPLES, demoPredictFromBytes, fileToDataUrl, meanLuminance } from "@/lib/sentinel/images";
-import { CLASS_LABELS, VERIFICATION_COPY, diffDetections, haversineM, visibleArea, type Report } from "@/lib/sentinel/model";
+import { CLASS_LABELS, categoryOf, VERIFICATION_COPY, diffDetections, haversineM, visibleArea, type Report } from "@/lib/sentinel/model";
 import { signOff, submitAfterPhoto, useReports } from "@/lib/sentinel/store";
 import { useT } from "@/lib/sentinel/i18n";
 import { cn } from "@/lib/utils";
@@ -169,7 +169,7 @@ function Inspector({ r }: { r: Report }) {
 
       {canResubmit && (
         <Panel title={v ? "Replace follow-up photo" : "Upload completion photo"}>
-          <Input type="file" accept="image/*" disabled={busy} onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; const url = await fileToDataUrl(f); await upload(url, demoPredictFromBytes(url)); }} />
+          <Input type="file" accept="image/*" disabled={busy} onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; const url = await fileToDataUrl(f); await upload(url, demoPredictFromBytes(url, categoryOf(r))); }} />
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {Object.values(AFTER_SAMPLES).map((s) => (
               <button key={s.id} disabled={busy} onClick={() => void upload(s.image, s.output)} className="group overflow-hidden rounded-lg border border-border text-left transition hover:border-primary/60">

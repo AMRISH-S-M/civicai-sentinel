@@ -4,14 +4,14 @@ import { AppHeader, AiTag, DetectionOverlay, Panel, SeverityBadge, SeverityPanel
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AFTER_SAMPLES, demoPredictFromBytes, fileToDataUrl } from "@/lib/sentinel/images";
-import { EXPOSURE_LABELS, VERIFICATION_COPY, linkCandidates, type Exposure, type ModelOutput, type Report } from "@/lib/sentinel/model";
+import { DEPARTMENTS, categoryOf, EXPOSURE_LABELS, VERIFICATION_COPY, linkCandidates, type Exposure, type ModelOutput, type Report } from "@/lib/sentinel/model";
 import { logEvent, severityFor, signOff, store, submitAfterPhoto, useReports } from "@/lib/sentinel/store";
 
 export const Route = createFileRoute("/incidents/$id")({
   head: ({ params }) => ({
     meta: [
       { title: `${params.id} — CivicAI Sentinel` },
-      { name: "description", content: "Road defect evidence, explainable risk score, linked reports and repair verification." },
+      { name: "description", content: "Civic issue evidence, explainable risk score, linked reports and repair verification." },
       { property: "og:title", content: `${params.id} — CivicAI Sentinel` },
       { property: "og:description", content: "Evidence, risk breakdown and repair verification for a citizen report." },
       { property: "og:type", content: "article" },
@@ -125,7 +125,7 @@ function WorkflowPanel({ r }: { r: Report }) {
   return (
     <Panel title="Inspection · repair · verification" right={<span className="text-xs text-muted-foreground">Routing simulated</span>}>
       <div className="flex flex-wrap gap-2">
-        {(r.status === "SUBMITTED" || r.status === "REOPENED") && <Button size="sm" onClick={() => upd(r.id, "admin", "Triaged → Roads dept. (simulated routing)", (x) => ({ ...x, status: "TRIAGED" }))}>Triage to Roads dept.</Button>}
+        {(r.status === "SUBMITTED" || r.status === "REOPENED") && <Button size="sm" onClick={() => upd(r.id, "admin", `Triaged → ${DEPARTMENTS[categoryOf(r)]} (simulated routing)`, (x) => ({ ...x, status: "TRIAGED" }))}>Route to {DEPARTMENTS[categoryOf(r)]}</Button>}
         {r.status === "TRIAGED" && <Button size="sm" onClick={() => upd(r.id, "admin", "Inspection scheduled", (x) => ({ ...x, status: "INSPECTION_SCHEDULED" }))}>Schedule inspection</Button>}
         {r.status === "INSPECTION_SCHEDULED" && (
           <div className="flex gap-2"><Input value={team} onChange={(e) => setTeam(e.target.value)} className="h-8 w-48" />
@@ -139,7 +139,7 @@ function WorkflowPanel({ r }: { r: Report }) {
           <p className="text-sm font-semibold">Upload post-repair photo</p>
           <Input type="file" accept="image/*" className="mt-1" disabled={busy} onChange={async (e) => {
             const f = e.target.files?.[0]; if (!f) return;
-            const url = await fileToDataUrl(f); await runVerification(url, demoPredictFromBytes(url), true);
+            const url = await fileToDataUrl(f); await runVerification(url, demoPredictFromBytes(url, categoryOf(r)), true);
           }} />
           <p className="mt-2 text-xs text-muted-foreground">Or demo follow-up samples:</p>
           <div className="mt-1 flex flex-wrap gap-1">

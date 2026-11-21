@@ -34,7 +34,7 @@ export function AppHeader() {
           </span>
           <span className="leading-tight">
             <span className="block text-[15px] font-bold tracking-tight">CivicAI Sentinel</span>
-            <span className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Greater Chennai · Roads</span>
+            <span className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Greater Chennai · Civic services</span>
           </span>
         </Link>
         <nav className="flex flex-wrap gap-1 text-sm font-medium">
@@ -99,7 +99,7 @@ export function DetectionOverlay({ image, output, className, compact, dim }: { i
   return (
     <figure className={cn("overflow-hidden rounded-xl border border-border bg-surface", className)}>
       <div className="relative">
-        <img src={image} alt="Road evidence" className="block w-full" />
+        <img src={image} alt="Citizen photo evidence" className="block w-full" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/40 to-transparent" />
         {output.detections.map((d, i) => {
           const tone = dim?.(i);

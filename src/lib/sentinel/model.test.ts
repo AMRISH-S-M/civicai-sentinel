@@ -53,3 +53,19 @@ describe("defect diff", () => {
     expect(diffDetections([pothole], [moved]).beforeState).toEqual(["remaining"]);
   });
 });
+
+import { categoryOf } from "./model";
+describe("civic categories", () => {
+  it("exposed wire scores as top damage evidence", () => {
+    const wire: Detection = { cls: "EL3", confidence: 0.8, box: { x: 0, y: 0, w: 0.1, h: 0.1 } };
+    expect(computeSeverity({ detections: [wire], exposure: "hospital_zone", linkedReportsIn30Days: 1 }).factors[0]?.value).toBe(98);
+  });
+  it("derives category from detections for older records", () => {
+    expect(categoryOf({ output: { detections: [{ cls: "WP1", confidence: 0.7, box: { x: 0, y: 0, w: 0.1, h: 0.1 } }] } })).toBe("water");
+  });
+  it("does not suggest linking a drain report to a nearby pothole", () => {
+    const all = seedReports(Date.parse("2026-11-21T00:00:00Z"));
+    const drain = all.find((r) => r.id === "RPT-1008")!;
+    expect(linkCandidates(drain, all).map((s) => s.other.id)).not.toContain("RPT-1001");
+  });
+});

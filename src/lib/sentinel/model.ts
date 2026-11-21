@@ -1,12 +1,30 @@
 // Core domain logic for CivicAI Sentinel (prototype heuristics, documented in the blueprint).
 
-export type DamageClass = "D00" | "D10" | "D20" | "D40";
+export type DamageClass = "D00" | "D10" | "D20" | "D40" | "DR1" | "DR2" | "WP1" | "WP2" | "EL1" | "EL2" | "EL3";
 export const CLASS_LABELS: Record<DamageClass, string> = {
   D00: "Longitudinal crack",
   D10: "Transverse crack",
   D20: "Alligator crack",
   D40: "Pothole",
+  DR1: "Drain overflow",
+  DR2: "Broken / open drain cover",
+  WP1: "Water pipe leak",
+  WP2: "Waterlogging",
+  EL1: "Leaning / damaged pole",
+  EL2: "Sagging / tangled wires",
+  EL3: "Exposed / fallen wire",
 };
+
+export type Category = "road" | "drainage" | "water" | "electrical";
+export const CATEGORIES: Category[] = ["road", "drainage", "water", "electrical"];
+export const CATEGORY_LABELS: Record<Category, string> = { road: "Roads", drainage: "Drainage", water: "Water supply", electrical: "Electrical" };
+export const DEPARTMENTS: Record<Category, string> = {
+  road: "Roads dept.", drainage: "Storm Water Drain dept.", water: "Metro Water", electrical: "Electricity board",
+};
+export const CLASS_CATEGORY: Record<DamageClass, Category> = {
+  D00: "road", D10: "road", D20: "road", D40: "road", DR1: "drainage", DR2: "drainage", WP1: "water", WP2: "water", EL1: "electrical", EL2: "electrical", EL3: "electrical",
+};
+export const classesOf = (c: Category) => (Object.keys(CLASS_CATEGORY) as DamageClass[]).filter((k) => CLASS_CATEGORY[k] === c);
 
 /** Normalized box: x, y, w, h in 0..1 of image size. */
 export interface Detection {
@@ -111,6 +129,7 @@ export interface Report {
   status: Status;
   incidentId: string | null; // admin-confirmed link group; reports stay separate records
   rejectedLinks: string[];
+  category?: Category; // missing on old records → derived from detections
   priorVisibleArea?: number; // from prior comparable inspection, 0..1
   history: HistoryEvent[];
   workOrder?: { team: string; due: string };
@@ -131,6 +150,13 @@ export const CLASS_DAMAGE_SCORE: Record<DamageClass, number> = {
   D10: 50,
   D20: 70,
   D40: 90,
+  DR1: 70,
+  DR2: 75,
+  WP1: 60,
+  WP2: 55,
+  EL1: 80,
+  EL2: 70,
+  EL3: 98,
 };
 
 export interface Factor {
@@ -194,7 +220,7 @@ export function computeSeverity(input: SeverityInput): Severity {
       "damage",
       "Damage evidence",
       CLASS_DAMAGE_SCORE[top.cls],
-      `${CLASS_LABELS[top.cls]} class detected; confidence ${top.confidence.toFixed(2)}`,
+      `${CLASS_LABELS[top.cls]} detected; confidence ${top.confidence.toFixed(2)}`,
     );
   }
 
@@ -267,6 +293,8 @@ export function categoryMatch(a: Detection[], b: Detection[]): number {
   const crackA = [...ca].some((c) => CRACKS.includes(c));
   const crackB = [...cb].some((c) => CRACKS.includes(c));
   if (crackA && crackB) return 0.6; // compatible crack families
+  const catA = new Set([...ca].map((c) => CLASS_CATEGORY[c]));
+  if ([...cb].some((c) => catA.has(CLASS_CATEGORY[c])) && !crackA) return 0.6; // same service category
   if ((ca.has("D20") && cb.has("D40")) || (ca.has("D40") && cb.has("D20"))) return 0.5;
   return 0;
 }
@@ -402,4 +430,8 @@ export function diffDetections(before: Detection[], after: Detection[]) {
   });
   const afterState = after.map((_, k) => (usedAfter.has(k) ? ("remaining" as const) : ("new" as const)));
   return { beforeState, afterState };
+}
+
+export function categoryOf(r: { category?: Category | undefined; output: { detections: Detection[] } }): Category {
+  return r.category ?? (r.output.detections[0] ? CLASS_CATEGORY[r.output.detections[0].cls] : "road");
 }

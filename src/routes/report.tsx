@@ -8,23 +8,25 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SAMPLES, demoPredictFromBytes, fileToDataUrl } from "@/lib/sentinel/images";
-import type { ModelOutput } from "@/lib/sentinel/model";
+import { CATEGORIES, CATEGORY_LABELS, type Category, type ModelOutput } from "@/lib/sentinel/model";
 import { store } from "@/lib/sentinel/store";
 import { useT } from "@/lib/sentinel/i18n";
 
 export const Route = createFileRoute("/report")({
   head: () => ({
     meta: [
-      { title: "Report a Road Defect — CivicAI Sentinel" },
-      { name: "description", content: "Submit photo evidence of a pothole or crack with location and consent." },
-      { property: "og:title", content: "Report a Road Defect — CivicAI Sentinel" },
-      { property: "og:description", content: "Citizen evidence intake for road damage." },
+      { title: "Report a Civic Problem — CivicAI Sentinel" },
+      { name: "description", content: "Report potholes, drain overflows, water pipe leaks or electric pole and wire hazards with a photo, location and consent." },
+      { property: "og:title", content: "Report a Civic Problem — CivicAI Sentinel" },
+      { property: "og:description", content: "Citizen evidence intake for roads, drainage, water and electrical issues." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ReportPage,
 });
+
+const CAT_ICON: Record<Category, string> = { road: "🛣️", drainage: "🌊", water: "🚰", electrical: "⚡" };
 
 const PRESETS = [
   { label: "Anna Nagar 2nd Ave (school)", lat: 13.08522, lng: 80.21005 },
@@ -34,7 +36,8 @@ const PRESETS = [
 
 function ReportPage() {
   const navigate = useNavigate();
-  const { t, lang } = useT();
+  const { t, lang, cat } = useT();
+  const [category, setCategory] = useState<Category>("road");
   const [image, setImage] = useState<string | null>(null);
   const [output, setOutput] = useState<ModelOutput | null>(null);
   const [lat, setLat] = useState("");
@@ -53,7 +56,7 @@ function ReportPage() {
     if (!f.type.startsWith("image/")) return setErr("Please choose an image file.");
     try {
       const url = await fileToDataUrl(f);
-      setImage(url); setOutput(demoPredictFromBytes(url)); setErr(null);
+      setImage(url); setOutput(demoPredictFromBytes(url, category)); setErr(null);
     } catch { setErr("Could not read that image."); }
   }
 
@@ -64,7 +67,7 @@ function ReportPage() {
     const id = `RPT-${Math.floor(2000 + Math.random() * 7999)}`;
     const now = new Date().toISOString();
     store.add({ id, createdAt: now, lat: latN, lng: lngN, area: area.trim() || "Unnamed location", description: desc.trim().slice(0, 1000), consent, image, output,
-      exposure: "unknown", status: "SUBMITTED", incidentId: null, rejectedLinks: [],
+      exposure: "unknown", status: "SUBMITTED", category, incidentId: null, rejectedLinks: [],
       history: [{ at: now, actor: "citizen", text: "Report submitted with photo evidence and consent" }, { at: now, actor: "system", text: `Demo detector returned ${output.detections.length} detection(s)` }] });
     void navigate({ to: "/incidents/$id", params: { id } });
   }
@@ -75,11 +78,21 @@ function ReportPage() {
       <main className="mx-auto grid max-w-6xl gap-4 px-4 py-5 lg:grid-cols-2">
         <div className="space-y-4">
           <div><p className="font-mono text-[11px] uppercase tracking-[0.2em] text-primary">Citizen intake · {lang === "ta" ? "குடிமக்கள்" : "Public"}</p><h1 className="mt-1 text-3xl font-bold tracking-tight">{t("report_title")}</h1><p className="text-sm text-muted-foreground">{t("report_sub")}</p></div>
+          <Panel title={t("step_category")}>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {CATEGORIES.map((c) => (
+                <button key={c} onClick={() => { setCategory(c); setImage(null); setOutput(null); }} aria-pressed={category === c}
+                  className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition ${category === c ? "border-primary bg-primary/15 text-primary glow" : "border-border hover:border-primary/50"}`}>
+                  <span className="mr-1">{CAT_ICON[c]}</span>{cat(c, CATEGORY_LABELS[c])}
+                </button>
+              ))}
+            </div>
+          </Panel>
           <Panel title={`1 · ${t("step_photo")}`}>
             <Input type="file" accept="image/*" onChange={(e) => void onFile(e.target.files?.[0])} />
             <p className="mt-2 text-xs text-muted-foreground">{t("upload_hint")}</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {Object.values(SAMPLES).map((s) => (
+              {Object.values(SAMPLES).filter((s) => s.category === category).map((s) => (
                 <button key={s.id} onClick={() => { setImage(s.image); setOutput(s.output); }} className={`overflow-hidden rounded-lg border text-left transition hover:border-primary/60 ${image === s.image ? "border-primary glow" : "border-border"}`}><img src={s.image} alt="" className="h-16 w-24 object-cover" /><span className="block w-24 truncate px-1.5 py-1 text-[11px]">{lang === "ta" ? s.labelTa : s.label}</span></button>
               ))}
             </div>

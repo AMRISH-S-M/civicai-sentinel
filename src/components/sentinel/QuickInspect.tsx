@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { AiTag, DetectionOverlay, SeverityBadge, SeverityPanel, StatusBadge } from "./ui";
-import { CLASS_LABELS, EXPOSURE_LABELS, linkCandidates, slaState, wardOf, type Exposure, type Report } from "@/lib/sentinel/model";
+import { CATEGORY_LABELS, CLASS_LABELS, DEPARTMENTS, EXPOSURE_LABELS, categoryOf, linkCandidates, slaState, wardOf, type Exposure, type Report } from "@/lib/sentinel/model";
 import { logEvent, severityFor, store } from "@/lib/sentinel/store";
 import { useT } from "@/lib/sentinel/i18n";
 import { cn } from "@/lib/utils";
@@ -16,11 +16,11 @@ export function SlaChip({ band, ageDays }: { band: Parameters<typeof slaState>[0
 export const ageDays = (r: Report) => Math.floor((Date.now() - Date.parse(r.createdAt)) / 86400000);
 
 export function QuickInspect({ r, all }: { r: Report; all: Report[] }) {
-  const { t, cls } = useT();
+  const { t, cls, cat } = useT();
   const s = severityFor(r, all);
   const links = linkCandidates(r, all);
   const next = r.status === "SUBMITTED" || r.status === "REOPENED"
-    ? { label: "Triage to Roads dept.", text: "Triaged → Roads dept. (simulated routing)", status: "TRIAGED" as const }
+    ? { label: `Route to ${DEPARTMENTS[categoryOf(r)]}`, text: `Triaged → ${DEPARTMENTS[categoryOf(r)]} (simulated routing)`, status: "TRIAGED" as const }
     : r.status === "TRIAGED" ? { label: "Schedule inspection", text: "Inspection scheduled", status: "INSPECTION_SCHEDULED" as const } : null;
   return (
     <div className="space-y-4">
@@ -29,7 +29,7 @@ export function QuickInspect({ r, all }: { r: Report; all: Report[] }) {
         {r.status !== "CLOSED" && <SlaChip band={s.band} ageDays={ageDays(r)} />}
         {r.incidentId && <span className="rounded-md border border-border px-1.5 py-0.5 font-mono text-[10px]">{r.incidentId}</span>}
       </div>
-      <p className="text-sm text-muted-foreground">{wardOf(r.lat, r.lng).name} ({wardOf(r.lat, r.lng).id}) · {r.area} · {ageDays(r)}d</p>
+      <p className="text-sm text-muted-foreground"><b className="text-primary">{cat(categoryOf(r), CATEGORY_LABELS[categoryOf(r)])}</b> · {wardOf(r.lat, r.lng).name} ({wardOf(r.lat, r.lng).id}) · {r.area} · {ageDays(r)}d</p>
       <DetectionOverlay image={r.image} output={r.output} />
       <p className="text-sm">“{r.description || "—"}”</p>
       <div className="flex flex-wrap gap-1">

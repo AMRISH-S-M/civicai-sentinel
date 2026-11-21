@@ -1,6 +1,6 @@
 // Synthetic demo road images (SVG) and a clearly-labelled demo predictor.
 // No live model is connected in this prototype; outputs are marked isDemo.
-import type { DamageClass, Detection, ModelOutput } from "./model";
+import { classesOf, type Category, type DamageClass, type Detection, type ModelOutput } from "./model";
 
 export const DEMO_MODEL = "demo-prediction v0 (no live inference)";
 
@@ -12,14 +12,18 @@ import repairedA from "@/assets/roads/repaired.jpg.asset.json";
 import potholeCloseA from "@/assets/roads/pothole_close.jpg.asset.json";
 import stillA from "@/assets/roads/still_damaged.jpg.asset.json";
 import nightA from "@/assets/roads/night.jpg.asset.json";
+import drainA from "@/assets/roads/drain.jpg.asset.json";
+import pipeA from "@/assets/roads/pipe.jpg.asset.json";
+import poleA from "@/assets/roads/pole.jpg.asset.json";
+import wireA from "@/assets/roads/wire.jpg.asset.json";
 
 type Box = [DamageClass, number, number, number, number, number]; // cls, conf, x, y, w, h
 export function demoOutput(boxes: Box[]): ModelOutput {
   return { model: DEMO_MODEL, isDemo: true, detections: boxes.map(([cls, confidence, x, y, w, h]) => ({ cls, confidence, box: { x, y, w, h } })) };
 }
 
-export interface Sample { id: string; label: string; labelTa: string; image: string; output: ModelOutput }
-const S = (id: string, label: string, labelTa: string, image: string, boxes: Box[]): Sample => ({ id, label, labelTa, image, output: demoOutput(boxes) });
+export interface Sample { id: string; label: string; labelTa: string; image: string; output: ModelOutput; category: Category }
+const S = (id: string, label: string, labelTa: string, image: string, boxes: Box[], category: Category = "road"): Sample => ({ id, label, labelTa, image, output: demoOutput(boxes), category });
 
 // Photo-realistic sample images; boxes were placed by hand to match each photo (demo annotations).
 export const SAMPLES = {
@@ -28,6 +32,10 @@ export const SAMPLES = {
   longCrack: S("longCrack", "Longitudinal crack", "நீளவாக்கு விரிசல்", longCrackA.url, [["D00", 0.72, 0.45, 0.0, 0.08, 1.0]]),
   transCrack: S("transCrack", "Transverse crack", "குறுக்கு விரிசல்", transCrackA.url, [["D10", 0.69, 0.0, 0.4, 1.0, 0.12]]),
   potholeClose: S("potholeClose", "Pothole close-up", "குழி அருகில்", potholeCloseA.url, [["D40", 0.77, 0.22, 0.17, 0.64, 0.66]]),
+  drain: S("drain", "Overflowing drain", "நிரம்பி வழியும் வடிகால்", drainA.url, [["DR1", 0.79, 0.25, 0.37, 0.6, 0.6], ["DR2", 0.66, 0.4, 0.26, 0.33, 0.21]], "drainage"),
+  pipe: S("pipe", "Water pipe leak", "குழாய் கசிவு", pipeA.url, [["WP1", 0.84, 0.36, 0.35, 0.4, 0.38], ["WP2", 0.58, 0.25, 0.65, 0.75, 0.35]], "water"),
+  pole: S("pole", "Leaning electric pole", "சாய்ந்த மின்கம்பம்", poleA.url, [["EL1", 0.88, 0.17, 0.03, 0.5, 0.87], ["EL2", 0.61, 0.46, 0.08, 0.4, 0.3]], "electrical"),
+  wire: S("wire", "Fallen live wire", "அறுந்த மின்கம்பி", wireA.url, [["EL3", 0.81, 0.3, 0.0, 0.4, 0.92]], "electrical"),
 } satisfies Record<string, Sample>;
 
 export const AFTER_SAMPLES = {
@@ -37,17 +45,17 @@ export const AFTER_SAMPLES = {
 };
 
 /** Deterministic demo prediction for a user upload — NOT real inference. */
-export function demoPredictFromBytes(dataUrl: string): ModelOutput {
+export function demoPredictFromBytes(dataUrl: string, category: Category = "road"): ModelOutput {
   let h = 2166136261;
   for (let i = 0; i < dataUrl.length; i += 97) h = Math.imul(h ^ dataUrl.charCodeAt(i), 16777619) >>> 0;
   const rnd = () => ((h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0) / 4294967296);
-  const classes: DamageClass[] = ["D40", "D20", "D00", "D10"];
+  const classes: DamageClass[] = classesOf(category);
   const n = 1 + Math.floor(rnd() * 2);
   const detections: Detection[] = [];
   for (let i = 0; i < n; i++) {
     const w = 0.1 + rnd() * 0.2, hh = 0.08 + rnd() * 0.15;
     detections.push({
-      cls: classes[Math.floor(rnd() * 4)] ?? "D40",
+      cls: classes[Math.floor(rnd() * classes.length)] ?? classes[0] ?? "D40",
       confidence: Math.round((0.5 + rnd() * 0.4) * 100) / 100,
       box: { x: 0.1 + rnd() * (0.8 - w), y: 0.25 + rnd() * (0.7 - hh), w, h: hh },
     });

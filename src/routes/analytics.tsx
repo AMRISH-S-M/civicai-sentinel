@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AppHeader, AiTag, Panel, Stat, bandVar } from "@/components/sentinel/ui";
 import { SlaChip, ageDays } from "@/components/sentinel/QuickInspect";
-import { EXPOSURE_LABELS, EXPOSURE_SCORES, SLA_DAYS, WARDS, slaState, stretchPriority, wardOf, type Severity } from "@/lib/sentinel/model";
+import { CATEGORIES, CATEGORY_LABELS, categoryOf, EXPOSURE_LABELS, EXPOSURE_SCORES, SLA_DAYS, WARDS, slaState, stretchPriority, wardOf, type Severity } from "@/lib/sentinel/model";
 import { severityFor, useReports } from "@/lib/sentinel/store";
 import { useT } from "@/lib/sentinel/i18n";
 
@@ -11,9 +11,9 @@ export const Route = createFileRoute("/analytics")({
   head: () => ({
     meta: [
       { title: "Preventive Analytics & SLA — CivicAI Sentinel" },
-      { name: "description", content: "Ward-wise road defect distribution, severity bands, repeat-damage aging and preventive risk ranking." },
+      { name: "description", content: "Ward-wise civic issue distribution, severity bands, repeat-damage aging and preventive risk ranking." },
       { property: "og:title", content: "Preventive Analytics & SLA — CivicAI Sentinel" },
-      { property: "og:description", content: "Which road stretches are worsening fastest near schools and hospitals." },
+      { property: "og:description", content: "Which locations are worsening fastest near schools and hospitals." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -26,7 +26,7 @@ const tip = { contentStyle: { background: "var(--card)", border: "1px solid var(
 
 function Analytics() {
   const reports = useReports();
-  const { t, band } = useT();
+  const { t, band, cat } = useT();
   const data = useMemo(() => {
     if (!reports) return null;
     const rows = reports.map((r) => ({ r, s: severityFor(r, reports), ward: wardOf(r.lat, r.lng) }));
@@ -36,6 +36,7 @@ function Analytics() {
       for (const b of BANDS) o[b] = open.filter((x) => x.ward.id === w.id && x.s.band === b).length;
       return o;
     });
+    const cats = CATEGORIES.map((c) => ({ name: c, open: open.filter((x) => categoryOf(x.r) === c).length, critical: open.filter((x) => categoryOf(x.r) === c && (x.s.band === "Critical" || x.s.band === "High")).length }));
     const bands = BANDS.map((b) => ({ name: b, value: open.filter((x) => x.s.band === b).length })).filter((x) => x.value > 0);
     // Stretches: admin-linked incident groups, else single report.
     const groups = new Map<string, typeof rows>();
@@ -47,12 +48,12 @@ function Analytics() {
       const top = g.reduce((a, b) => ((EXPOSURE_SCORES[b.r.exposure] ?? 0) > (EXPOSURE_SCORES[a.r.exposure] ?? 0) ? b : a));
       const oldest = Math.max(...g.map((x) => ageDays(x.r)));
       const worst = g.reduce((a, b) => ((b.s.score ?? 0) > (a.s.score ?? 0) ? b : a));
-      const reasons = [`Max risk ${maxScore}`, det > 0 ? `Deterioration ${det}/100` : "No prior inspection", `${EXPOSURE_LABELS[top.r.exposure]}`, `${g.length} report(s)`];
+      const reasons = [CATEGORY_LABELS[categoryOf(g[0]!.r)], `Max risk ${maxScore}`, det > 0 ? `Deterioration ${det}/100` : "No prior inspection", `${EXPOSURE_LABELS[top.r.exposure]}`, `${g.length} report(s)`];
       return { key: k, area: g[0]!.r.area, ward: g[0]!.ward.name, reports: g as typeof rows, priority: stretchPriority({ maxScore, deterioration: det, exposure: expo, reports: g.length }), reasons, oldest, worst };
     }).sort((a, b) => b.priority - a.priority);
     const breached = open.filter((x) => slaState(x.s.band, ageDays(x.r)).state === "breached").length;
     const closed = rows.filter((x) => x.r.status === "CLOSED");
-    return { rows, open, wards, bands, stretches, breached, closed };
+    return { rows, open, wards, cats, bands, stretches, breached, closed };
   }, [reports]);
 
   if (!reports || !data) return <><AppHeader /><p className="p-8 text-muted-foreground">Loading…</p></>;
@@ -107,7 +108,19 @@ function Analytics() {
           </Panel>
         </div>
 
-        <Panel title="Preventive risk ranking — road stretches" right={<AiTag text="Prototype heuristic" />} bodyClassName="p-0">
+        <Panel title="Open issues by service category">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {data.cats.map((c) => (
+              <div key={c.name} className="rounded-lg border border-border bg-secondary/40 p-3">
+                <div className="text-sm font-medium">{cat(c.name, CATEGORY_LABELS[c.name])}</div>
+                <div className="mt-1 font-mono text-2xl font-semibold">{c.open}</div>
+                <div className="text-xs text-sev-high">{c.critical} high / critical</div>
+              </div>
+            ))}
+          </div>
+        </Panel>
+
+        <Panel title="Preventive risk ranking — locations" right={<AiTag text="Prototype heuristic" />} bodyClassName="p-0">
           <p className="px-4 pt-3 text-xs text-muted-foreground">Priority = 0.40·max risk + 0.30·deterioration + 0.20·public exposure + 0.10·repeat reports. Stretch = admin-linked incident group, or a single report.</p>
           <ol className="divide-y divide-border">
             {data.stretches.map((s, i) => (

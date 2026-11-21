@@ -5,7 +5,7 @@ import { IncidentMap } from "@/components/sentinel/IncidentMap";
 import { QuickInspect, SlaChip, ageDays } from "@/components/sentinel/QuickInspect";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { CLASS_LABELS, STATUS_LABELS, STATUS_ORDER, linkCandidates, slaState, wardOf, type Status } from "@/lib/sentinel/model";
+import { CATEGORIES, CATEGORY_LABELS, categoryOf, type Category, CLASS_LABELS, STATUS_LABELS, STATUS_ORDER, linkCandidates, slaState, wardOf, type Status } from "@/lib/sentinel/model";
 import { severityFor, store, useReports } from "@/lib/sentinel/store";
 import { useT } from "@/lib/sentinel/i18n";
 
@@ -13,9 +13,9 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Command Center — CivicAI Sentinel" },
-      { name: "description", content: "Municipal command center for citizen road-defect reports: live risk map, priority queue, SLA and repair verification." },
+      { name: "description", content: "Municipal command center for citizen reports on roads, drains, water and electrical issues: live risk map, priority queue, SLA and repair verification." },
       { property: "og:title", content: "Command Center — CivicAI Sentinel" },
-      { property: "og:description", content: "Detect, prioritize and verify road repairs from citizen evidence." },
+      { property: "og:description", content: "Detect, prioritize and verify civic repairs from citizen evidence." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/")({
 });
 
 const DEMO_STEPS = [
-  { t: "0:30", text: "Submit a road photo with location — see detections", to: "/report" as const },
+  { t: "0:30", text: "Submit a civic issue photo with location — see detections", to: "/report" as const },
   { t: "1:15", text: "Severity breakdown; change exposure context", id: "RPT-1001" },
   { t: "2:00", text: "Incident link suggestion — accept/reject", id: "RPT-1003" },
   { t: "2:45", text: "Work order & upload post-repair photo", id: "RPT-1004" },
@@ -34,9 +34,10 @@ const DEMO_STEPS = [
 
 function Dashboard() {
   const reports = useReports();
-  const { t, cls, status: st } = useT();
+  const { t, cls, cat, status: st } = useT();
   const [filter, setFilter] = useState<Status | "ALL" | "OPEN">("OPEN");
   const [sel, setSel] = useState<string | null>(null);
+  const [catF, setCatF] = useState<Category | "ALL">("ALL");
 
   const rows = useMemo(() => {
     if (!reports) return [];
@@ -46,7 +47,7 @@ function Dashboard() {
 
   if (!reports) return <><AppHeader /><p className="p-8 text-muted-foreground">Loading demo data…</p></>;
 
-  const shown = rows.filter(({ r }) => filter === "ALL" || (filter === "OPEN" ? r.status !== "CLOSED" : r.status === filter));
+  const shown = rows.filter(({ r }) => (catF === "ALL" || categoryOf(r) === catF) && (filter === "ALL" || (filter === "OPEN" ? r.status !== "CLOSED" : r.status === filter)));
   const open = rows.filter(({ r }) => r.status !== "CLOSED");
   const critical = open.filter(({ s }) => s.band === "Critical" || s.band === "High").length;
   const breached = open.filter(({ r, s }) => slaState(s.band, ageDays(r)).state === "breached").length;
@@ -74,6 +75,17 @@ function Dashboard() {
           <Stat label="High / critical" value={critical} tone="text-sev-high" />
           <Stat label="SLA breached" value={breached} tone={breached ? "text-sev-critical" : "text-sev-low"} />
           <Stat label="Link suggestions" value={pendingLinks} tone="text-primary" />
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {(["ALL", ...CATEGORIES] as const).map((c) => {
+            const n = reports.filter((r) => r.status !== "CLOSED" && (c === "ALL" || categoryOf(r) === c)).length;
+            return (
+              <button key={c} onClick={() => setCatF(c)} className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${catF === c ? "border-primary bg-primary/15 text-primary glow" : "border-border text-muted-foreground hover:text-foreground"}`}>
+                {c === "ALL" ? t("all") : cat(c, CATEGORY_LABELS[c])} <span className="ml-1 font-mono text-xs">{n}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="flex flex-wrap gap-1.5">
@@ -112,13 +124,14 @@ function Dashboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
-                <tr className="border-b border-border">{["Report", t("risk"), t("defects"), t("ward"), t("status"), t("sla"), "Flags"].map((h) => <th key={h} className="px-4 py-2 font-medium">{h}</th>)}</tr>
+                <tr className="border-b border-border">{["Report", t("risk"), t("category"), t("defects"), t("ward"), t("status"), t("sla"), "Flags"].map((h) => <th key={h} className="px-4 py-2 font-medium">{h}</th>)}</tr>
               </thead>
               <tbody>
                 {shown.map(({ r, s, links }) => (
                   <tr key={r.id} onClick={() => setSel(r.id)} className={`cursor-pointer border-b border-border/60 transition hover:bg-secondary/50 ${sel === r.id ? "bg-primary/10" : ""}`}>
                     <td className="px-4 py-2.5 font-mono font-semibold">{r.id}</td>
                     <td className="px-4"><SeverityBadge s={s} /></td>
+                    <td className="px-4 font-medium">{cat(categoryOf(r), CATEGORY_LABELS[categoryOf(r)])}</td>
                     <td className="px-4 text-muted-foreground">{[...new Set(r.output.detections.map((d) => cls(d.cls, CLASS_LABELS[d.cls])))].join(", ") || "—"}</td>
                     <td className="px-4">{wardOf(r.lat, r.lng).name}</td>
                     <td className="px-4"><StatusBadge status={r.status} /></td>
@@ -130,7 +143,7 @@ function Dashboard() {
                     </td>
                   </tr>
                 ))}
-                {shown.length === 0 && <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">No reports in this queue.</td></tr>}
+                {shown.length === 0 && <tr><td colSpan={8} className="py-8 text-center text-muted-foreground">No reports in this queue.</td></tr>}
               </tbody>
             </table>
           </div>

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import type { DamageClass, Severity, Status, VerificationResult } from "./model";
+import type { Category, DamageClass, Severity, Status, VerificationResult } from "./model";
 
 export type Lang = "en" | "ta";
 const KEY = "civicai-lang";
@@ -21,7 +21,9 @@ const D = {
   nav_lab: ["Verification Lab", "சரிபார்ப்பு ஆய்வகம்"],
   nav_report: ["Citizen Report", "குடிமக்கள் புகார்"],
   demo_mode: ["Local demo mode · seeded data", "உள்ளூர் டெமோ · மாதிரி தரவு"],
-  report_title: ["Report a road defect", "சாலை சேதத்தைப் புகாரளிக்கவும்"],
+  report_title: ["Report a civic problem", "குடிமைப் பிரச்சினையைப் புகாரளிக்கவும்"],
+  step_category: ["Problem type", "பிரச்சினை வகை"],
+  category: ["Category", "வகை"],
   report_sub: ["Your photo becomes civic evidence. Municipal staff review every report.", "உங்கள் புகைப்படம் குடிமைச் சான்றாகும். ஒவ்வொரு புகாரையும் நகராட்சி ஊழியர்கள் பார்வையிடுவர்."],
   step_photo: ["Photo evidence", "புகைப்படச் சான்று"],
   upload_hint: ["Upload a photo, or use a demo sample:", "புகைப்படத்தைப் பதிவேற்றவும் அல்லது மாதிரியைப் பயன்படுத்தவும்:"],
@@ -39,13 +41,13 @@ const D = {
   need_loc: ["Add a valid location.", "சரியான இருப்பிடத்தைச் சேர்க்கவும்."],
   need_consent: ["Consent is required to submit evidence.", "சமர்ப்பிக்க ஒப்புதல் தேவை."],
   preview: ["Detection preview", "கண்டறிதல் முன்னோட்டம்"],
-  preview_empty: ["Add a photo to see detected defects", "சேதங்களைக் காண புகைப்படம் சேர்க்கவும்"],
+  preview_empty: ["Add a photo to see detected issues", "சிக்கல்களைக் காண புகைப்படம் சேர்க்கவும்"],
   conf_note: ["Detection confidence is not severity or urgency. Uploaded photos receive a deterministic demo prediction because no trained model is connected.", "கண்டறிதல் நம்பகத்தன்மை தீவிரம் அல்ல. பயிற்சி பெற்ற மாதிரி இணைக்கப்படாததால் பதிவேற்றங்களுக்கு டெமோ கணிப்பு வழங்கப்படும்."],
   demo_pred: ["Demo prediction — not live inference", "டெமோ கணிப்பு — நேரடி AI அல்ல"],
   detections: ["detection(s)", "கண்டறிதல்(கள்)"],
   risk: ["Risk", "அபாயம்"],
   status: ["Status", "நிலை"],
-  defects: ["Defects", "சேதங்கள்"],
+  defects: ["Issues", "சிக்கல்கள்"],
   area: ["Area", "பகுதி"],
   age: ["Age", "வயது"],
   ward: ["Ward", "வார்டு"],
@@ -71,7 +73,8 @@ const STATUS_TA: Record<Status, string> = {
   REPAIR_IN_PROGRESS: "பழுதுபார்ப்பு நடைபெறுகிறது", VERIFICATION_PENDING: "சரிபார்ப்பு நிலுவையில்", CLOSED: "மூடப்பட்டது", REOPENED: "மீண்டும் திறக்கப்பட்டது",
 };
 const BAND_TA: Record<Severity["band"], string> = { Low: "குறைவு", Moderate: "மிதமானது", High: "அதிகம்", Critical: "மிக முக்கியம்", Incomplete: "முழுமையற்ற மதிப்பீடு" };
-const CLASS_TA: Record<DamageClass, string> = { D00: "நீளவாக்கு விரிசல்", D10: "குறுக்கு விரிசல்", D20: "வலை விரிசல்", D40: "குழி" };
+const CLASS_TA: Record<DamageClass, string> = { D00: "நீளவாக்கு விரிசல்", D10: "குறுக்கு விரிசல்", D20: "வலை விரிசல்", D40: "குழி", DR1: "வடிகால் நிரம்பி வழிதல்", DR2: "உடைந்த வடிகால் மூடி", WP1: "குடிநீர் குழாய் கசிவு", WP2: "நீர் தேக்கம்", EL1: "சாய்ந்த மின்கம்பம்", EL2: "தொங்கும் மின்கம்பிகள்", EL3: "வெளிப்பட்ட / அறுந்த மின்கம்பி" };
+const CAT_TA: Record<Category, string> = { road: "சாலைகள்", drainage: "வடிகால்", water: "குடிநீர் விநியோகம்", electrical: "மின்சாரம்" };
 const VER_TA: Record<VerificationResult, string> = { APPEARS_IMPROVED: "மேம்பட்டதாகத் தெரிகிறது", DAMAGE_STILL_VISIBLE: "சேதம் இன்னும் தெரிகிறது", INCONCLUSIVE: "முடிவில்லை" };
 
 export function useT() {
@@ -83,6 +86,7 @@ export function useT() {
     status: (s: Status, en: string) => (l === "ta" ? STATUS_TA[s] : en),
     band: (b: Severity["band"]) => (l === "ta" ? BAND_TA[b] : b === "Incomplete" ? "Incomplete assessment" : b),
     cls: (c: DamageClass, en: string) => (l === "ta" ? CLASS_TA[c] : en),
+    cat: (c: Category, en: string) => (l === "ta" ? CAT_TA[c] : en),
     ver: (v: VerificationResult, en: string) => (l === "ta" ? VER_TA[v] : en),
   };
 }

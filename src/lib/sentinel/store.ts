@@ -5,7 +5,7 @@ import type { HistoryEvent, Report } from "./model";
 import { VERIFICATION_COPY, computeSeverity, haversineM, verifyRepair, type ModelOutput } from "./model";
 import { AFTER_SAMPLES, SAMPLES, meanLuminance } from "./images";
 
-const KEY = "civicai-sentinel-v2";
+const KEY = "civicai-sentinel-v3";
 const day = 86400000;
 const ago = (d: number, base = Date.now()) => new Date(base - d * day).toISOString();
 const ev = (at: string, actor: HistoryEvent["actor"], text: string): HistoryEvent => ({ at, actor, text });
@@ -29,6 +29,12 @@ export function seedReports(now = Date.now()): Report[] {
     r({ id: "RPT-1006", createdAt: ago(3, now), lat: 13.0732, lng: 80.2205, area: "Kilpauk, Poonamallee High Rd", description: "Long crack along the lane.", image: SAMPLES.longCrack.image, output: SAMPLES.longCrack.output, exposure: "unknown", status: "SUBMITTED" }),
     r({ id: "RPT-1007", createdAt: ago(30, now), lat: 13.0505, lng: 80.2121, area: "Vadapalani, 100 Ft Rd", description: "Crack across the road.", image: SAMPLES.transCrack.image, output: SAMPLES.transCrack.output, exposure: "residential", status: "CLOSED",
       verification: { result: "APPEARS_IMPROVED", reasons: ["Detected damage not found in later image"], afterImage: AFTER_SAMPLES.repaired.image, afterOutput: AFTER_SAMPLES.repaired.output, afterLat: 13.0505, afterLng: 80.2121, capturedAt: ago(2, now), human: { decision: "confirmed", at: ago(2, now), note: "Citizen confirmed" } } }),
+    r({ id: "RPT-1008", createdAt: ago(2, now), lat: 13.0868, lng: 80.2125, area: "Anna Nagar 3rd Main Rd", description: "Drain overflowing onto the road, slab broken near the gate.", image: SAMPLES.drain.image, output: SAMPLES.drain.output, exposure: "residential", status: "SUBMITTED", category: "drainage" }),
+    r({ id: "RPT-1009", createdAt: ago(4, now), lat: 13.0612, lng: 80.2468, area: "Nungambakkam High Rd", description: "Drinking water pipe leaking for days, water wasted.", image: SAMPLES.pipe.image, output: SAMPLES.pipe.output, exposure: "main_road", status: "TRIAGED", category: "water",
+      history: [ev(ago(4, now), "citizen", "Report submitted with photo evidence"), ev(ago(3, now), "admin", "Triaged → Metro Water (simulated routing)")] }),
+    r({ id: "RPT-1010", createdAt: ago(1, now), lat: 13.06395, lng: 80.2489, area: "Greams Rd (hospital access)", description: "Wire fallen on the footpath outside the hospital, people walking past.", image: SAMPLES.wire.image, output: SAMPLES.wire.output, exposure: "hospital_zone", status: "SUBMITTED", category: "electrical" }),
+    r({ id: "RPT-1011", createdAt: ago(6, now), lat: 13.0425, lng: 80.2351, area: "T. Nagar, Usman Rd", description: "Electric pole leaning badly with tangled wires.", image: SAMPLES.pole.image, output: SAMPLES.pole.output, exposure: "main_road", status: "INSPECTION_SCHEDULED", category: "electrical",
+      history: [ev(ago(6, now), "citizen", "Report submitted with photo evidence"), ev(ago(5, now), "admin", "Triaged → Electricity board (simulated routing)"), ev(ago(4, now), "admin", "Inspection scheduled")] }),
   ];
 }
 
