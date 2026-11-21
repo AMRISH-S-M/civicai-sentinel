@@ -435,3 +435,16 @@ export function diffDetections(before: Detection[], after: Detection[]) {
 export function categoryOf(r: { category?: Category | undefined; output: { detections: Detection[] } }): Category {
   return r.category ?? (r.output.detections[0] ? CLASS_CATEGORY[r.output.detections[0].cls] : "road");
 }
+
+// ---------- Field dispatch ----------
+export const CREWS: Record<Category, string[]> = {
+  road: ["Zone 9 Patch Crew", "Zone 10 Patch Crew"],
+  drainage: ["SWD Desilting Crew A", "SWD Masonry Crew"],
+  water: ["Metro Water Leak Team 3", "Metro Water Leak Team 7"],
+  electrical: ["EB Line Gang North", "EB Line Gang South"],
+};
+/** Citizen-facing progress steps (index into this list). */
+export const TRACK_STEPS = ["Received", "Assigned", "Inspection", "Repair", "Verification", "Resolved"] as const;
+export function trackStep(s: Status): number {
+  return { SUBMITTED: 0, REOPENED: 1, TRIAGED: 1, INSPECTION_SCHEDULED: 2, REPAIR_IN_PROGRESS: 3, VERIFICATION_PENDING: 4, CLOSED: 5 }[s];
+}

@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as FieldRouteImport } from './routes/field'
 import { Route as ReportRouteImport } from './routes/report'
+import { Route as TrackRouteImport } from './routes/track'
 import { Route as VerificationRouteImport } from './routes/verification'
 import { Route as IncidentsIdRouteImport } from './routes/incidents/$id'
 
@@ -25,9 +27,19 @@ const AnalyticsRoute = AnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FieldRoute = FieldRouteImport.update({
+  id: '/field',
+  path: '/field',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportRoute = ReportRouteImport.update({
   id: '/report',
   path: '/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrackRoute = TrackRouteImport.update({
+  id: '/track',
+  path: '/track',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VerificationRoute = VerificationRouteImport.update({
@@ -44,14 +56,18 @@ const IncidentsIdRoute = IncidentsIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
+  '/field': typeof FieldRoute
   '/report': typeof ReportRoute
+  '/track': typeof TrackRoute
   '/verification': typeof VerificationRoute
   '/incidents/$id': typeof IncidentsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
+  '/field': typeof FieldRoute
   '/report': typeof ReportRoute
+  '/track': typeof TrackRoute
   '/verification': typeof VerificationRoute
   '/incidents/$id': typeof IncidentsIdRoute
 }
@@ -59,20 +75,38 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
+  '/field': typeof FieldRoute
   '/report': typeof ReportRoute
+  '/track': typeof TrackRoute
   '/verification': typeof VerificationRoute
   '/incidents/$id': typeof IncidentsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/analytics' | '/report' | '/verification' | '/incidents/$id'
+  fullPaths:
+    | '/'
+    | '/analytics'
+    | '/field'
+    | '/report'
+    | '/track'
+    | '/verification'
+    | '/incidents/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/analytics' | '/report' | '/verification' | '/incidents/$id'
+  to:
+    | '/'
+    | '/analytics'
+    | '/field'
+    | '/report'
+    | '/track'
+    | '/verification'
+    | '/incidents/$id'
   id:
     | '__root__'
     | '/'
     | '/analytics'
+    | '/field'
     | '/report'
+    | '/track'
     | '/verification'
     | '/incidents/$id'
   fileRoutesById: FileRoutesById
@@ -80,7 +114,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalyticsRoute: typeof AnalyticsRoute
+  FieldRoute: typeof FieldRoute
   ReportRoute: typeof ReportRoute
+  TrackRoute: typeof TrackRoute
   VerificationRoute: typeof VerificationRoute
   IncidentsIdRoute: typeof IncidentsIdRoute
 }
@@ -101,11 +137,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/field': {
+      id: '/field'
+      path: '/field'
+      fullPath: '/field'
+      preLoaderRoute: typeof FieldRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/report': {
       id: '/report'
       path: '/report'
       fullPath: '/report'
       preLoaderRoute: typeof ReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/track': {
+      id: '/track'
+      path: '/track'
+      fullPath: '/track'
+      preLoaderRoute: typeof TrackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/verification': {
@@ -128,7 +178,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyticsRoute: AnalyticsRoute,
+  FieldRoute: FieldRoute,
   ReportRoute: ReportRoute,
+  TrackRoute: TrackRoute,
   VerificationRoute: VerificationRoute,
   IncidentsIdRoute: IncidentsIdRoute,
 }

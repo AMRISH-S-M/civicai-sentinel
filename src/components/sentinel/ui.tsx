@@ -23,7 +23,9 @@ export function AppHeader() {
     { to: "/" as const, k: "nav_command" as const, exact: true },
     { to: "/analytics" as const, k: "nav_analytics" as const },
     { to: "/verification" as const, k: "nav_lab" as const },
+    { to: "/field" as const, k: "nav_field" as const },
     { to: "/report" as const, k: "nav_report" as const },
+    { to: "/track" as const, k: "nav_track" as const },
   ];
   return (
     <header className="sticky top-0 z-[1000] border-b border-border bg-background/80 backdrop-blur-xl">

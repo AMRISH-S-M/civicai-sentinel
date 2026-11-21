@@ -34,3 +34,4 @@ use the editor.
 - UI copy for citizen intake and triage terms goes through src/lib/sentinel/i18n.ts (English/Tamil) so both languages stay in sync.
 - Demo sample photos (all categories) are Lovable asset pointers in src/assets/roads with hand-placed demo boxes in images.ts; keep boxes matched to the photo when swapping images.
 - Issue categories and their detection classes, damage scores and departments are defined only in model.ts (CLASS_CATEGORY, DEPARTMENTS); add new categories there first.
+- Citizen tracker (/track) and field dispatch (/field) reuse store.ts signOff/submitAfterPhoto; crews per category live in model.ts CREWS so dispatch and tracking show the same assignment.

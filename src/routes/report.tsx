@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SAMPLES, demoPredictFromBytes, fileToDataUrl } from "@/lib/sentinel/images";
 import { CATEGORIES, CATEGORY_LABELS, type Category, type ModelOutput } from "@/lib/sentinel/model";
-import { store } from "@/lib/sentinel/store";
+import { rememberTicket, store } from "@/lib/sentinel/store";
 import { useT } from "@/lib/sentinel/i18n";
 
 export const Route = createFileRoute("/report")({
@@ -69,7 +69,8 @@ function ReportPage() {
     store.add({ id, createdAt: now, lat: latN, lng: lngN, area: area.trim() || "Unnamed location", description: desc.trim().slice(0, 1000), consent, image, output,
       exposure: "unknown", status: "SUBMITTED", category, incidentId: null, rejectedLinks: [],
       history: [{ at: now, actor: "citizen", text: "Report submitted with photo evidence and consent" }, { at: now, actor: "system", text: `Demo detector returned ${output.detections.length} detection(s)` }] });
-    void navigate({ to: "/incidents/$id", params: { id } });
+    rememberTicket(id);
+    void navigate({ to: "/track", search: { id, new: true } });
   }
 
   return (

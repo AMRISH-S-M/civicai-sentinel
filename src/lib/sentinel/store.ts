@@ -103,3 +103,12 @@ export function signOff(id: string, decision: "confirmed" | "disputed", actor: "
     ...(x.verification && { verification: { ...x.verification, human: { decision, at: new Date().toISOString(), ...(note && { note }) } } }),
   }, actor, decision === "confirmed" ? `Repair confirmed by ${actor}${note ? `: ${note}` : ""}` : `Repair disputed by ${actor} — reopened${note ? `: ${note}` : ""}`));
 }
+
+// Tickets this browser submitted (citizen "my tickets").
+const TKEY = "civicai-my-tickets";
+export function rememberTicket(id: string) {
+  try { const l = myTickets(); localStorage.setItem(TKEY, JSON.stringify([id, ...l.filter((x) => x !== id)].slice(0, 20))); } catch { /* ignore */ }
+}
+export function myTickets(): string[] {
+  try { const v = JSON.parse(localStorage.getItem(TKEY) ?? "[]") as unknown; return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []; } catch { return []; }
+}

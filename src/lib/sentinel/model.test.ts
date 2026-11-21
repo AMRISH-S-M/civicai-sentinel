@@ -69,3 +69,11 @@ describe("civic categories", () => {
     expect(linkCandidates(drain, all).map((s) => s.other.id)).not.toContain("RPT-1001");
   });
 });
+
+import { trackStep } from "./model";
+describe("citizen tracker steps", () => {
+  it("maps repair in progress to the Repair step and closed to Resolved", () => {
+    expect(trackStep("REPAIR_IN_PROGRESS")).toBe(3);
+    expect(trackStep("CLOSED")).toBe(5);
+  });
+});
