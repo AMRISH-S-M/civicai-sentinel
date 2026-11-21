@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { CLASS_LABELS, STATUS_LABELS, type ModelOutput, type Severity, type Status } from "@/lib/sentinel/model";
 import { Button } from "@/components/ui/button";
 import { setLang, useT } from "@/lib/sentinel/i18n";
+import { useSyncStatus } from "@/lib/sentinel/store";
 
 export function LangToggle() {
   const { lang } = useT();
@@ -16,6 +17,13 @@ export function LangToggle() {
       ))}
     </div>
   );
+}
+
+function SyncChip() {
+  const s = useSyncStatus();
+  const label = s === "live" ? "Shared database · live" : s === "offline" ? "Offline · this device only" : "Connecting…";
+  return <span role="status" className="hidden items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground sm:inline-flex">
+    <span className={cn("h-1.5 w-1.5 rounded-full", s === "live" ? "bg-primary" : s === "offline" ? "bg-destructive" : "bg-muted-foreground")} />{label}</span>;
 }
 
 export function AppHeader() {
@@ -49,6 +57,7 @@ export function AppHeader() {
             </Link>
           ))}
         </nav>
+        <SyncChip />
         <div className="ml-auto flex items-center gap-3">
           <span className="hidden items-center gap-2 rounded-full border border-border px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground md:flex">
             <span className="h-1.5 w-1.5 rounded-full bg-sev-moderate text-sev-moderate pulse-dot" />{t("demo_mode")}

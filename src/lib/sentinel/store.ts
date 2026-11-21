@@ -1,6 +1,8 @@
-// Local seeded demo store (localStorage). The blueprint requires a demo mode
-// that never depends on live APIs.
+// Seeded demo store. Reports are shared through the connected Supabase
+// database (with live updates); localStorage is an offline cache so the demo
+// still opens if the backend is unreachable.
 import { useSyncExternalStore } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import type { HistoryEvent, Report } from "./model";
 import { VERIFICATION_COPY, computeSeverity, haversineM, verifyRepair, type ModelOutput } from "./model";
 import { AFTER_SAMPLES, SAMPLES, meanLuminance } from "./images";
@@ -40,20 +42,86 @@ export function seedReports(now = Date.now()): Report[] {
 
 let state: Report[] | null = null;
 const listeners = new Set<() => void>();
+const remoteEnabled = () => typeof window !== "undefined" && import.meta.env.MODE !== "test";
+
+type Row = {
+  id: string; created_at: string; lat: number; lng: number; area: string; description: string; category: string | null;
+  exposure: string; status: string; incident_id: string | null; consent: boolean; image: string; output: unknown;
+  history: unknown; verification: unknown; work_order: unknown; prior_visible_area: number | null; rejected_links: unknown;
+};
+export function toRow(r: Report): Row {
+  return { id: r.id, created_at: r.createdAt, lat: r.lat, lng: r.lng, area: r.area, description: r.description, category: r.category ?? null,
+    exposure: r.exposure, status: r.status, incident_id: r.incidentId, consent: r.consent, image: r.image, output: r.output,
+    history: r.history, verification: r.verification ?? null, work_order: r.workOrder ?? null, prior_visible_area: r.priorVisibleArea ?? null,
+    rejected_links: r.rejectedLinks };
+}
+export function fromRow(x: Row): Report {
+  return { id: x.id, createdAt: new Date(x.created_at).toISOString(), lat: x.lat, lng: x.lng, area: x.area, description: x.description,
+    consent: x.consent, image: x.image, output: x.output as Report["output"], exposure: x.exposure as Report["exposure"], status: x.status as Report["status"],
+    incidentId: x.incident_id, rejectedLinks: Array.isArray(x.rejected_links) ? (x.rejected_links as string[]) : [],
+    history: Array.isArray(x.history) ? (x.history as HistoryEvent[]) : [],
+    ...(x.category && { category: x.category as NonNullable<Report["category"]> }),
+    ...(x.prior_visible_area != null && { priorVisibleArea: x.prior_visible_area }),
+    ...(x.work_order != null && { workOrder: x.work_order as NonNullable<Report["workOrder"]> }),
+    ...(x.verification != null && { verification: x.verification as NonNullable<Report["verification"]> }) };
+}
+
+// Supabase status shown to presenters: "local" until the first successful load.
+export type SyncStatus = "local" | "live" | "offline";
+let sync: SyncStatus = "local";
+const syncListeners = new Set<() => void>();
+const setSync = (s: SyncStatus) => { sync = s; syncListeners.forEach((l) => l()); };
+export const useSyncStatus = () => useSyncExternalStore((l) => { syncListeners.add(l); return () => syncListeners.delete(l); }, () => sync, () => "local" as SyncStatus);
+
+async function pull() {
+  const { data, error } = await supabase.from("reports").select("*").order("created_at", { ascending: false });
+  if (error || !data) { setSync("offline"); return; }
+  setSync("live");
+  apply(data.map((d) => fromRow(d as Row)));
+}
+let started = false;
+function startRemote() {
+  if (started || !remoteEnabled()) return;
+  started = true;
+  void pull();
+  supabase.channel(`reports-${Math.random().toString(36).slice(2)}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "reports" }, () => void pull())
+    .subscribe();
+}
+async function push(prev: Report[], next: Report[]) {
+  if (!remoteEnabled()) return;
+  const before = new Map(prev.map((r) => [r.id, r]));
+  const changed = next.filter((r) => before.get(r.id) !== r).map(toRow);
+  const ids = new Set(next.map((r) => r.id));
+  const removed = prev.filter((r) => !ids.has(r.id)).map((r) => r.id);
+  const results = await Promise.all([
+    changed.length ? supabase.from("reports").upsert(changed as never) : null,
+    removed.length ? supabase.from("reports").delete().in("id", removed) : null,
+  ]);
+  if (results.some((x) => x?.error)) setSync("offline");
+}
+
 function load(): Report[] {
-  if (state) return state;
-  try {
-    const raw = localStorage.getItem(KEY);
-    state = raw ? (JSON.parse(raw) as Report[]) : seedReports();
-  } catch {
-    state = seedReports();
+  if (!state) {
+    try {
+      const raw = localStorage.getItem(KEY);
+      state = raw ? (JSON.parse(raw) as Report[]) : seedReports();
+    } catch {
+      state = seedReports();
+    }
   }
+  startRemote();
   return state;
 }
-function save(next: Report[]) {
+function apply(next: Report[]) {
   state = next;
   try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* quota: keep in memory */ }
   listeners.forEach((l) => l());
+}
+function save(next: Report[]) {
+  const prev = state ?? [];
+  apply(next);
+  void push(prev, next);
 }
 const subscribe = (l: () => void) => { listeners.add(l); return () => listeners.delete(l); };
 

@@ -38,3 +38,9 @@ describe("field to citizen lifecycle", () => {
     expect(rows).toHaveLength(11); expect(rows.some((x) => x.id === "CUSTOM")).toBe(false);
   });
 });
+describe("database row mapping", () => {
+  it("round-trips every seeded report without losing fields", async () => {
+    const { fromRow, toRow, seedReports } = await import("./store");
+    for (const r of seedReports()) expect(fromRow(toRow(r))).toEqual(r);
+  });
+});

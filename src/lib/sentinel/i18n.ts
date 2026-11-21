@@ -40,7 +40,7 @@ const D = {
   not_fixed: ["No, still a problem", "இல்லை, இன்னும் பிரச்சினை"],
   reopen: ["Reopen ticket", "மீண்டும் திற"],
   thanks: ["Thank you — your response was recorded.", "நன்றி — உங்கள் பதில் பதிவு செய்யப்பட்டது."],
-  demo_mode: ["Local demo mode · seeded data", "உள்ளூர் டெமோ · மாதிரி தரவு"],
+  demo_mode: ["Demo mode · seeded data", "டெமோ · மாதிரி தரவு"],
   report_title: ["Report a civic problem", "குடிமைப் பிரச்சினையைப் புகாரளிக்கவும்"],
   step_category: ["Problem type", "பிரச்சினை வகை"],
   category: ["Category", "வகை"],

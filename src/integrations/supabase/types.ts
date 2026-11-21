@@ -14,7 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      reports: {
+        Row: {
+          area: string
+          category: string | null
+          consent: boolean
+          created_at: string
+          description: string
+          exposure: string
+          history: Json
+          id: string
+          image: string
+          incident_id: string | null
+          lat: number
+          lng: number
+          output: Json
+          prior_visible_area: number | null
+          rejected_links: Json
+          status: string
+          updated_at: string
+          verification: Json | null
+          work_order: Json | null
+        }
+        Insert: {
+          area?: string
+          category?: string | null
+          consent?: boolean
+          created_at?: string
+          description?: string
+          exposure?: string
+          history?: Json
+          id: string
+          image: string
+          incident_id?: string | null
+          lat: number
+          lng: number
+          output: Json
+          prior_visible_area?: number | null
+          rejected_links?: Json
+          status?: string
+          updated_at?: string
+          verification?: Json | null
+          work_order?: Json | null
+        }
+        Update: {
+          area?: string
+          category?: string | null
+          consent?: boolean
+          created_at?: string
+          description?: string
+          exposure?: string
+          history?: Json
+          id?: string
+          image?: string
+          incident_id?: string | null
+          lat?: number
+          lng?: number
+          output?: Json
+          prior_visible_area?: number | null
+          rejected_links?: Json
+          status?: string
+          updated_at?: string
+          verification?: Json | null
+          work_order?: Json | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

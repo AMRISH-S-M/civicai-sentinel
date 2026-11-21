@@ -37,3 +37,10 @@ use the editor.
 - Citizen tracker (/track) and field dispatch (/field) reuse store.ts signOff/submitAfterPhoto; crews per category live in model.ts CREWS so dispatch and tracking show the same assignment.
 - Validate all citizen and completion photo uploads through images.ts and always release busy state on failure; shared handling prevents workflow-specific bypasses.
 - Keep pitch and evaluation documentation under docs/ and link it from README; disclose demo heuristics separately from unmeasured model performance.
+
+## Project rules
+
+- Reports live in the Supabase `public.reports` table (one row per citizen record, JSON columns for detections/history/verification); `src/lib/sentinel/store.ts` keeps the synchronous store API, pushes changed rows, and refetches on realtime changes, so screens never talk to the database directly.
+- localStorage is only an offline cache and the test-mode backend; remote sync is disabled when `import.meta.env.MODE === "test"` so unit tests stay deterministic.
+- Database access is open to anonymous visitors until staff sign-in exists; tighten the RLS policies before any real deployment.
+- Photos are stored inline in the report row because the workspace blocks public storage buckets.
