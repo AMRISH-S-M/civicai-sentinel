@@ -176,8 +176,8 @@ function WorkflowPanel({ r }: { r: Report }) {
           ) : (
             <div className="flex flex-wrap items-center gap-2">
               <Input placeholder="Optional note" value={note} onChange={(e) => setNote(e.target.value)} className="h-8 max-w-xs" />
-              <Button size="sm" className="bg-sev-low text-primary hover:bg-sev-low/80" onClick={() => upd(r.id, "citizen", `Repair confirmed by human reviewer${note ? `: ${note}` : ""}`, (x) => ({ ...x, status: "CLOSED", verification: x.verification && { ...x.verification, human: { decision: "confirmed", at: new Date().toISOString(), ...(note && { note }) } } }))}>Confirm repair & close</Button>
-              <Button size="sm" variant="destructive" onClick={() => upd(r.id, "citizen", `Repair disputed — reopened${note ? `: ${note}` : ""}`, (x) => ({ ...x, status: "REOPENED", verification: x.verification && { ...x.verification, human: { decision: "disputed", at: new Date().toISOString(), ...(note && { note }) } } }))}>Dispute & reopen</Button>
+              <Button size="sm" className="bg-sev-low text-primary hover:bg-sev-low/80" onClick={() => upd(r.id, "citizen", `Repair confirmed by human reviewer${note ? `: ${note}` : ""}`, (x) => ({ ...x, status: "CLOSED", ...(x.verification && { verification: { ...x.verification, human: { decision: "confirmed" as const, at: new Date().toISOString(), ...(note && { note }) } } }) }))}>Confirm repair & close</Button>
+              <Button size="sm" variant="destructive" onClick={() => upd(r.id, "citizen", `Repair disputed — reopened${note ? `: ${note}` : ""}`, (x) => ({ ...x, status: "REOPENED", ...(x.verification && { verification: { ...x.verification, human: { decision: "disputed" as const, at: new Date().toISOString(), ...(note && { note }) } } }) }))}>Dispute & reopen</Button>
             </div>
           )}
         </div>
