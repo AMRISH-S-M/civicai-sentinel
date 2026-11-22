@@ -67,7 +67,7 @@ const D = {
   no_detections: ["No demo detections. This is not proof that the location is safe; human review is required.", "டெமோ கண்டறிதல்கள் இல்லை. இது பாதுகாப்பிற்கான சான்றல்ல; மனித ஆய்வு தேவை."],
   preview: ["Detection preview", "கண்டறிதல் முன்னோட்டம்"],
   preview_empty: ["Add a photo to see detected issues", "சிக்கல்களைக் காண புகைப்படம் சேர்க்கவும்"],
-  conf_note: ["Detection confidence is not severity or urgency. Uploaded photos receive a deterministic demo prediction because no trained model is connected.", "கண்டறிதல் நம்பகத்தன்மை தீவிரம் அல்ல. பயிற்சி பெற்ற மாதிரி இணைக்கப்படாததால் பதிவேற்றங்களுக்கு டெமோ கணிப்பு வழங்கப்படும்."],
+  conf_note: ["Detection confidence is not severity or urgency. Road photos are checked by a live AI model (advisory); other categories use a demo prediction.", "கண்டறிதல் நம்பகத்தன்மை தீவிரம் அல்ல. சாலை புகைப்படங்கள் நேரடி AI மாதிரியால் சோதிக்கப்படுகின்றன (ஆலோசனை மட்டும்); மற்ற வகைகளுக்கு மாதிரி கணிப்பு."],
   demo_pred: ["Demo prediction — not live inference", "டெமோ கணிப்பு — நேரடி AI அல்ல"],
   detections: ["detection(s)", "கண்டறிதல்(கள்)"],
   risk: ["Risk", "அபாயம்"],

@@ -116,3 +116,15 @@ export function fileToDataUrl(file: File, max = 1000): Promise<string> {
     r.readAsDataURL(file);
   });
 }
+
+/** Road photos go to the live Roboflow workflow; other categories or any failure use the labelled demo predictor. */
+export async function predictImage(dataUrl: string, category: Category = "road"): Promise<ModelOutput> {
+  if (category !== "road" || import.meta.env.MODE === "test") return demoPredictFromBytes(dataUrl, category);
+  try {
+    const { detectRoad } = await import("./roboflow.functions");
+    return await detectRoad({ data: { image: dataUrl } });
+  } catch (e) {
+    console.warn("Live detection unavailable, using demo prediction", e);
+    return demoPredictFromBytes(dataUrl, category);
+  }
+}

@@ -4,7 +4,7 @@ import { AppHeader, AiTag, DetectionOverlay, Panel, SeverityBadge, SeverityPanel
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useT } from "@/lib/sentinel/i18n";
-import { UploadError, AFTER_SAMPLES, demoPredictFromBytes, fileToDataUrl } from "@/lib/sentinel/images";
+import { UploadError, AFTER_SAMPLES, demoPredictFromBytes, predictImage, fileToDataUrl } from "@/lib/sentinel/images";
 import { DEPARTMENTS, categoryOf, EXPOSURE_LABELS, VERIFICATION_COPY, linkCandidates, type Exposure, type ModelOutput, type Report } from "@/lib/sentinel/model";
 import { logEvent, severityFor, signOff, store, submitAfterPhoto, useReports } from "@/lib/sentinel/store";
 
@@ -145,7 +145,7 @@ function WorkflowPanel({ r }: { r: Report }) {
           <p className="text-sm font-semibold">Upload post-repair photo</p>
           <Input type="file" accept="image/*" className="mt-1" disabled={busy} onChange={async (e) => {
             const f = e.target.files?.[0]; if (!f) return;
-            try { const url = await fileToDataUrl(f); await runVerification(url, demoPredictFromBytes(url, categoryOf(r)), true); }
+            try { const url = await fileToDataUrl(f); await runVerification(url, await predictImage(url, categoryOf(r)), true); }
             catch (e) { setErr(t(e instanceof UploadError ? e.code : "unreadable_image")); }
           }} />
           <p className="mt-2 text-xs text-muted-foreground">Road-only demo follow-up samples:</p>

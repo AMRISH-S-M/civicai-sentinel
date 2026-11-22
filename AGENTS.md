@@ -45,3 +45,4 @@ use the editor.
 - Staff pages live under `src/routes/_authenticated/` (sign-in + any role in `user_roles`); only staff can list/update reports. Residents stay signed out and use the `get_ticket` / `citizen_sign_off` database functions, so public ticket actions are limited to status-checked transitions.
 - Roles (`admin`, `crew`) live only in `public.user_roles`; the first account becomes admin via the signup trigger, and admins grant roles on /team.
 - Photos are stored inline in the report row because the workspace blocks public storage buckets.
+- Road photo detection calls the Roboflow workflow only via the server function in src/lib/sentinel/roboflow.functions.ts (key in ROBOFLOW_API_KEY secret); images.ts predictImage falls back to the labelled demo predictor for other categories or any failure, so the app never depends on the live API.

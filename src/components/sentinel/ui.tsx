@@ -143,7 +143,7 @@ export function DetectionOverlay({ image, output, className, compact, dim }: { i
       </div>
       {!compact && (
         <figcaption className="flex flex-wrap items-center gap-2 border-t border-border px-3 py-2 text-xs text-muted-foreground">
-          <AiTag text={output.isDemo ? t("demo_pred") : "Model output"} />
+          <AiTag text={output.isDemo ? t("demo_pred") : "Live AI model output · advisory"} />
           <span className="font-mono">{output.model}</span>
           <span className="ml-auto">{output.detections.length} {t("detections")}</span>
           {output.detections.length === 0 && <span className="basis-full">{t("no_detections")}</span>}

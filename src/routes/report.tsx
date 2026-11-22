@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { SAMPLES, UploadError, demoPredictFromBytes, fileToDataUrl } from "@/lib/sentinel/images";
+import { SAMPLES, UploadError, predictImage, fileToDataUrl } from "@/lib/sentinel/images";
 import { CATEGORIES, CATEGORY_LABELS, type Category, type ModelOutput } from "@/lib/sentinel/model";
 import { rememberTicket, store } from "@/lib/sentinel/store";
 import { useT } from "@/lib/sentinel/i18n";
@@ -55,7 +55,7 @@ function ReportPage() {
     if (!f) return;
     try {
       const url = await fileToDataUrl(f);
-      setImage(url); setOutput(demoPredictFromBytes(url, category)); setErr(null);
+      setImage(url); setOutput(null); setErr(null); setOutput(await predictImage(url, category));
     } catch (e) { setErr(t(e instanceof UploadError ? e.code : "unreadable_image")); }
   }
 
@@ -67,7 +67,7 @@ function ReportPage() {
     const now = new Date().toISOString();
     store.add({ id, createdAt: now, lat: latN, lng: lngN, area: area.trim() || "Unnamed location", description: desc.trim().slice(0, 1000), consent, image, output,
       exposure: "unknown", status: "SUBMITTED", category, incidentId: null, rejectedLinks: [],
-      history: [{ at: now, actor: "citizen", text: "Report submitted with photo evidence and consent" }, { at: now, actor: "system", text: `Demo detector returned ${output.detections.length} detection(s)` }] });
+      history: [{ at: now, actor: "citizen", text: "Report submitted with photo evidence and consent" }, { at: now, actor: "system", text: `${output.isDemo ? "Demo detector" : "Live AI model"} returned ${output.detections.length} detection(s)` }] });
     rememberTicket(id);
     void navigate({ to: "/track", search: { id, new: true } });
   }

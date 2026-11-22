@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
-import { UploadError, AFTER_SAMPLES, demoPredictFromBytes, fileToDataUrl, meanLuminance } from "@/lib/sentinel/images";
+import { UploadError, AFTER_SAMPLES, demoPredictFromBytes, predictImage, fileToDataUrl, meanLuminance } from "@/lib/sentinel/images";
 import { CLASS_LABELS, categoryOf, VERIFICATION_COPY, diffDetections, haversineM, visibleArea, type Report } from "@/lib/sentinel/model";
 import { signOff, submitAfterPhoto, useReports } from "@/lib/sentinel/store";
 import { useT } from "@/lib/sentinel/i18n";
@@ -174,7 +174,7 @@ function Inspector({ r }: { r: Report }) {
         <Panel title={v ? "Replace follow-up photo" : "Upload completion photo"}>
           <label className="mb-3 flex items-center gap-2 text-sm"><Checkbox checked={comparable} onCheckedChange={(v) => setComparable(v === true)} />Comparable viewpoint and subject (reviewer assessment)</label>
           {err && <p role="alert" className="mb-2 text-sm text-destructive">{err}</p>}
-          <Input type="file" accept="image/*" disabled={busy} onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; try { const url = await fileToDataUrl(f); await upload(url, demoPredictFromBytes(url, categoryOf(r))); } catch (e) { setErr(t(e instanceof UploadError ? e.code : "unreadable_image")); } }} />
+          <Input type="file" accept="image/*" disabled={busy} onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; try { const url = await fileToDataUrl(f); await upload(url, await predictImage(url, categoryOf(r))); } catch (e) { setErr(t(e instanceof UploadError ? e.code : "unreadable_image")); } }} />
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {Object.values(AFTER_SAMPLES).filter(() => categoryOf(r) === "road").map((s) => (
               <button key={s.id} disabled={busy} onClick={() => void upload(s.image, s.output)} className="group overflow-hidden rounded-lg border border-border text-left transition hover:border-primary/60">

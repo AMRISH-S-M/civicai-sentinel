@@ -4,8 +4,8 @@ import { AppHeader, AiTag, Panel, SeverityBadge, StatusBadge } from "@/component
 import { SlaChip, ageDays } from "@/components/sentinel/QuickInspect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CATEGORIES, CATEGORY_LABELS, CLASS_LABELS, CREWS, DEPARTMENTS, SLA_DAYS, categoryOf, type Category, type Report } from "@/lib/sentinel/model";
-import { UploadError, AFTER_SAMPLES, demoPredictFromBytes, fileToDataUrl } from "@/lib/sentinel/images";
+import { CATEGORIES, CATEGORY_LABELS, CLASS_LABELS, CREWS, DEPARTMENTS, SLA_DAYS, categoryOf, type Category, type ModelOutput, type Report } from "@/lib/sentinel/model";
+import { UploadError, AFTER_SAMPLES, predictImage, fileToDataUrl } from "@/lib/sentinel/images";
 import { logEvent, severityFor, store, submitAfterPhoto, useReports } from "@/lib/sentinel/store";
 import { useT } from "@/lib/sentinel/i18n";
 import { cn } from "@/lib/utils";
@@ -85,7 +85,7 @@ function JobCard({ r, band, score, cls }: { r: Report; band: ReturnType<typeof s
   const [err, setErr] = useState<string | null>(null);
   const act = (text: string, f: (x: Report) => Report = (x) => x) => store.update(r.id, (x) => logEvent(f(x), "inspector", text));
   const dueFor = () => new Date(Date.now() + SLA_DAYS[band] * 864e5).toISOString();
-  const upload = async (img: string, sameLoc: boolean, out = demoPredictFromBytes(img, c)) => { setBusy(true); setErr(null); try { await submitAfterPhoto(r, img, out, sameLoc); } catch { setErr(t("unreadable_image")); } finally { setBusy(false); } };
+  const upload = async (img: string, sameLoc: boolean, given?: ModelOutput) => { setBusy(true); setErr(null); try { const out = given ?? await predictImage(img, c); await submitAfterPhoto(r, img, out, sameLoc); } catch { setErr(t("unreadable_image")); } finally { setBusy(false); } };
 
   return (
     <Panel title={<span className="font-mono normal-case text-foreground">{r.id} · {r.area}</span>} right={<StatusBadge status={r.status} />}>
