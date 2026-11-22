@@ -23,14 +23,6 @@ export const Route = createFileRoute("/_authenticated/")({
   component: Dashboard,
 });
 
-const DEMO_STEPS = [
-  { t: "0:30", text: "Submit a civic issue photo with location — see detections", to: "/report" as const },
-  { t: "1:15", text: "Severity breakdown; change exposure context", id: "RPT-1001" },
-  { t: "2:00", text: "Incident link suggestion — accept/reject", id: "RPT-1003" },
-  { t: "2:45", text: "Work order & upload post-repair photo", id: "RPT-1004" },
-  { t: "3:45", text: "Before/after in the Verification Lab", lab: "RPT-1005" },
-  { t: "4:30", text: "Analytics: worsening stretches & SLA", to: "/analytics" as const },
-];
 
 function Dashboard() {
   const reports = useReports();
@@ -100,23 +92,10 @@ function Dashboard() {
           <button onClick={() => setFilter("ALL")} className={`rounded-full border px-3 py-1 text-xs font-medium ${filter === "ALL" ? "border-primary bg-primary/15 text-primary" : "border-border text-muted-foreground"}`}>{t("all")}</button>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
+        <div className="grid gap-4">
           <Panel title={t("risk_map")} bodyClassName="p-0" right={<span className="text-[11px] text-muted-foreground">Click a marker to inspect · dashed ring = link suggestion</span>}>
             <IncidentMap className="h-[460px] w-full rounded-b-xl" selectedId={sel} onSelect={setSel}
               points={shown.map(({ r, s, links }) => ({ id: r.id, lat: r.lat, lng: r.lng, color: bandVar[s.band], ring: links > 0, label: `${r.id} · ${s.score ?? "—"} ${s.band} · ${STATUS_LABELS[r.status]}` }))} />
-          </Panel>
-          <Panel title="5-minute demo flow">
-            <ol className="space-y-3">
-              {DEMO_STEPS.map((d) => (
-                <li key={d.t} className="flex gap-3 text-sm">
-                  <span className="mt-0.5 rounded bg-secondary px-1.5 font-mono text-[10px] text-primary">{d.t}</span>
-                  {d.to ? <Link to={d.to} className="hover:text-primary">{d.text}</Link>
-                    : d.lab ? <Link to="/verification" search={{ id: d.lab }} className="hover:text-primary">{d.text}</Link>
-                    : <button onClick={() => setSel(d.id ?? null)} className="text-left hover:text-primary">{d.text} <span className="font-mono text-xs text-muted-foreground">{d.id}</span></button>}
-                </li>
-              ))}
-            </ol>
-            <p className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">All AI outputs are demo predictions on seeded samples; no live model is connected.</p>
           </Panel>
         </div>
 
